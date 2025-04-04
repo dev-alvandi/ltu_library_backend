@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  app:
+    image: dbbServer-docker
+    build: .
+    ports:
+      - "9090:8080"
+    environment:
+      MYSQL_HOST: mysqldb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+
+
+  mysqldb:
+    container_name: mysqldb
+    image: mysql:8.0.39
+    environment:
+      MYSQL_DATABASE: dbb_db
+      MYSQL_ROOT_PASSWORD: root
+    command:
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_0900_as_cs
+
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d # Mount the init script folder
+    ports:
+      - "3307:3306"
+
+volumes:
+  mysql-data:
