@@ -59,7 +59,7 @@ public class AuthController {
         createdUser.setStreet(street);
         createdUser.setPostalCode(postalCode);
         createdUser.setEmail(email);
-        createdUser.setPassword(password);
+        createdUser.setPassword(passwordEncoder.encode(password));
 
         User savedUser = userRepository.save(createdUser);
 
