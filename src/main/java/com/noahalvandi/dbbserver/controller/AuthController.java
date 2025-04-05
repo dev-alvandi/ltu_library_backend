@@ -7,6 +7,7 @@ import com.noahalvandi.dbbserver.repository.UserRepository;
 import com.noahalvandi.dbbserver.response.AuthResponse;
 import com.noahalvandi.dbbserver.service.CustomUserDetailsServiceImplementation;
 import com.noahalvandi.dbbserver.service.PasswordResetService;
+import com.noahalvandi.dbbserver.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +43,8 @@ public class AuthController {
 
     @Autowired
     private PasswordResetService passwordResetService;
+    @Autowired
+    private UserService userService;
 
     @GetMapping("/debug/users")
     public List<User> getAllUsers() {
@@ -79,6 +82,7 @@ public class AuthController {
         createdUser.setPostalCode(postalCode);
         createdUser.setEmail(email);
         createdUser.setPassword(passwordEncoder.encode(password));
+        createdUser.setUserType(userService.determineUserTypeByEmail(email, firstName, lastName));
 
         User savedUser = userRepository.save(createdUser);
 

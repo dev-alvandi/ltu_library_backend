@@ -187,7 +187,8 @@ class AuthControllerTest {
 
         Map<String, String> request = Map.of(
                 "token", token,
-                "newPassword", newPassword
+                "password", newPassword,
+                "confirmPassword", newPassword
         );
 
         User user = new User();
@@ -239,7 +240,8 @@ class AuthControllerTest {
 
         Map<String, String> request = Map.of(
                 "token", token,
-                "newPassword", "newpass"
+                "password", "newpass",
+                "confirmPassword", "newpass"
         );
 
         when(passwordResetService.isValidToken(token)).thenReturn(true);
