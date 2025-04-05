@@ -6,6 +6,8 @@ import com.noahalvandi.dbbserver.model.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
 import com.noahalvandi.dbbserver.response.AuthResponse;
 import com.noahalvandi.dbbserver.service.CustomUserDetailsServiceImplementation;
+import com.noahalvandi.dbbserver.service.PasswordResetService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -13,28 +15,33 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
+    @Autowired
     private UserRepository userRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
     private JwtProvider jwtProvider;
+
+    @Autowired
     private CustomUserDetailsServiceImplementation customUserDetails;
 
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider, CustomUserDetailsServiceImplementation customUserDetails) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtProvider = jwtProvider;
-        this.customUserDetails = customUserDetails;
-    }
+    @Autowired
+    private PasswordResetService passwordResetService;
 
     @GetMapping("/debug/users")
     public List<User> getAllUsers() {
@@ -100,6 +107,44 @@ public class AuthController {
         AuthResponse res = new AuthResponse(token, true);
 
         return new ResponseEntity<>(res, HttpStatus.OK);
+    }
+
+    @PostMapping("/request-password-reset")
+    public ResponseEntity<String> requestPasswordReset(@RequestBody Map<String, String> request) {
+        System.out.println(request);
+
+        String email = request.get("email");
+        passwordResetService.sendPasswordResetToken(email);
+        return ResponseEntity.ok("Reset link sent if email exists.");
+    }
+
+    @PostMapping("/password-reset")
+    public ResponseEntity<String> resetPassword(@RequestBody Map<String, String> request) {
+
+        String token = request.get("token");
+        String newPassword = request.get("password");
+        String confirmNewPassword = request.get("confirmPassword");
+
+        if (!passwordResetService.isValidToken(token)) {
+            return ResponseEntity.badRequest().body("Invalid or expired token");
+        }
+
+        if (!newPassword.equals(confirmNewPassword)) {
+            return ResponseEntity.badRequest().body("Password and confirm password do not match");
+        }
+
+        Integer userId = passwordResetService.getUserIdFromToken(token);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+
+        // Hash password and update
+        User user = userRepository.findById(userId).orElseThrow();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        passwordResetService.invalidateToken(token);
+        return ResponseEntity.ok("Password updated successfully");
     }
 
     private Authentication authenticate(String username, String password) {

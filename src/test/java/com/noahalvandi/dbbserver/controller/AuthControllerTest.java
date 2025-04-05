@@ -6,24 +6,25 @@ import com.noahalvandi.dbbserver.model.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
 import com.noahalvandi.dbbserver.response.AuthResponse;
 import com.noahalvandi.dbbserver.service.CustomUserDetailsServiceImplementation;
+import com.noahalvandi.dbbserver.service.PasswordResetService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.*;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.ArrayList;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 
 class AuthControllerTest {
@@ -39,6 +40,9 @@ class AuthControllerTest {
 
     @Mock
     private CustomUserDetailsServiceImplementation customUserDetails;
+
+    @Mock
+    private PasswordResetService passwordResetService;
 
     @InjectMocks
     private AuthController authController;
@@ -157,6 +161,98 @@ class AuthControllerTest {
 
         // Act & Assert
         assertThrows(BadCredentialsException.class, () -> authController.login(user));
+    }
+
+    @Test
+    void testRequestPasswordReset() {
+        // Given
+        Map<String, String> request = new HashMap<>();
+        request.put("email", "test@example.com");
+
+        // When
+        ResponseEntity<String> response = authController.requestPasswordReset(request);
+
+        // Then
+        verify(passwordResetService).sendPasswordResetToken("test@example.com");
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Reset link sent if email exists.", response.getBody());
+    }
+
+    @Test
+    void testResetPassword_withValidTokenAndUser() {
+        // Given
+        String token = "valid-token";
+        String newPassword = "new-password";
+        int userId = 1;
+
+        Map<String, String> request = Map.of(
+                "token", token,
+                "newPassword", newPassword
+        );
+
+        User user = new User();
+        user.setUserId(userId);
+        user.setEmail("test@example.com");
+
+        when(passwordResetService.isValidToken(token)).thenReturn(true);
+        when(passwordResetService.getUserIdFromToken(token)).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode(newPassword)).thenReturn("hashed-password");
+
+        // When
+        ResponseEntity<String> response = authController.resetPassword(request);
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Password updated successfully", response.getBody());
+
+        verify(userRepository).save(user);
+        assertEquals("hashed-password", user.getPassword());
+        verify(passwordResetService).invalidateToken(token);
+    }
+
+    @Test
+    void testResetPassword_withInvalidToken() {
+
+        // Given
+        Map<String, String> request = Map.of(
+                "token", "invalid-token",
+                "newPassword", "somePassword"
+        );
+
+        when(passwordResetService.isValidToken("invalid-token")).thenReturn(false);
+
+        // When
+        ResponseEntity<String> response = authController.resetPassword(request);
+
+        // Then
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Invalid or expired token", response.getBody());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void testResetPassword_userNotFound() {
+        // Given
+        String token = "valid-token";
+        int missingUserId = 999;
+
+        Map<String, String> request = Map.of(
+                "token", token,
+                "newPassword", "newpass"
+        );
+
+        when(passwordResetService.isValidToken(token)).thenReturn(true);
+        when(passwordResetService.getUserIdFromToken(token)).thenReturn(missingUserId);
+        when(userRepository.findById(missingUserId)).thenReturn(Optional.empty());
+
+        // When
+        Exception exception = assertThrows(Exception.class, () -> {
+            authController.resetPassword(request);
+        });
+
+        // Optionally check message if needed
+        assertInstanceOf(NoSuchElementException.class, exception);
     }
 
 }
