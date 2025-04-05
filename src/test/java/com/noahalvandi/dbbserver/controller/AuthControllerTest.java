@@ -5,6 +5,7 @@ import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
 import com.noahalvandi.dbbserver.response.AuthResponse;
+import com.noahalvandi.dbbserver.service.CustomUserDetailsServiceImplementation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -12,8 +13,12 @@ import org.mockito.Mock;
 import org.mockito.*;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,6 +36,9 @@ class AuthControllerTest {
 
     @Mock
     private JwtProvider jwtProvider;
+
+    @Mock
+    private CustomUserDetailsServiceImplementation customUserDetails;
 
     @InjectMocks
     private AuthController authController;
@@ -77,6 +85,78 @@ class AuthControllerTest {
         assertEquals(hashedPassword, userCaptor.getValue().getPassword());
 
         verify(jwtProvider).generateToken(any(Authentication.class));
+    }
+
+    @Test
+    public void shouldReturnToken_WhenCredentialsAreCorrect() throws Exception {
+        // Arrange
+        String email = "test@example.com";
+        String password = "password123";
+        String encodedPassword = "encoded123";
+        String token = "mock-jwt-token";
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(password);
+
+        UserDetails userDetails = org.springframework.security.core.userdetails.User
+                .withUsername(email)
+                .password(encodedPassword)
+                .authorities(new ArrayList<>())
+                .build();
+
+        when(customUserDetails.loadUserByUsername(email)).thenReturn(userDetails);
+        when(passwordEncoder.matches(password, encodedPassword)).thenReturn(true);
+        when(jwtProvider.generateToken(any())).thenReturn(token);
+
+        // Act
+        ResponseEntity<AuthResponse> response = authController.login(user);
+
+        // Assert
+        assertEquals(200, response.getStatusCode().value());
+        AuthResponse authResponse = response.getBody();
+        assertNotNull(authResponse);
+        assertTrue(authResponse.isStatus());
+        assertEquals(token, response.getBody().getJwt());
+    }
+
+    @Test
+    public void shouldThrowBadCredentialsException_WhenPasswordIsInvalid() {
+        // Arrange
+        String email = "test@example.com";
+        String password = "wrongpass";
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(password);
+
+        UserDetails userDetails = org.springframework.security.core.userdetails.User
+                .withUsername(email)
+                .password("realencodedpassword")
+                .authorities(new ArrayList<>())
+                .build();
+
+        when(customUserDetails.loadUserByUsername(email)).thenReturn(userDetails);
+        when(passwordEncoder.matches(password, "realencodedpassword")).thenReturn(false);
+
+        // Act & Assert
+        assertThrows(BadCredentialsException.class, () -> authController.login(user));
+    }
+
+    @Test
+    public void shouldThrowBadCredentialsException_WhenUserNotFound() {
+        // Arrange
+        String email = "nonexistent@example.com";
+        String password = "pass";
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(password);
+
+        when(customUserDetails.loadUserByUsername(email)).thenReturn(null);
+
+        // Act & Assert
+        assertThrows(BadCredentialsException.class, () -> authController.login(user));
     }
 
 }
