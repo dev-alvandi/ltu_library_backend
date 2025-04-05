@@ -1,13 +1,15 @@
 package com.noahalvandi.dbbserver.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Entity
 @Data
+@Table(name = "user")
 public class User {
 
     @Id
@@ -16,7 +18,9 @@ public class User {
 
     private String firstName;
     private String lastName;
-    private Date dateOfBirth;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd")
+    private LocalDate dateOfBirth;
 
     private String phoneNumber;
     private String city;
