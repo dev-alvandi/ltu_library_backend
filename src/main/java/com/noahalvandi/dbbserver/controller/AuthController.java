@@ -126,6 +126,7 @@ public class AuthController {
 
     @PostMapping("/request-password-reset")
     public ResponseEntity<String> requestPasswordReset(@Valid @RequestBody RequestPasswordResetRequest request) {
+        System.out.println(request.getEmail());
         passwordResetService.sendPasswordResetToken(request.getEmail());
         return ResponseEntity.ok("Reset link sent if email exists.");
     }

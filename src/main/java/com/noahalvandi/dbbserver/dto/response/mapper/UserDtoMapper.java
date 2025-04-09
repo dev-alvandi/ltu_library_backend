@@ -8,7 +8,7 @@ public class UserDtoMapper {
     public static UserDto toDto(User user) {
         UserDto userDto = new UserDto();
 
-        userDto.setId(userDto.getId());
+        userDto.setUserId(user.getUserId());
 
         userDto.setFirstName(user.getFirstName());
         userDto.setLastName(user.getLastName());

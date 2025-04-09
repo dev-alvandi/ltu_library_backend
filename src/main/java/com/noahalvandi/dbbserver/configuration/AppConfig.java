@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +40,12 @@ import java.util.Properties;
 @Configuration
 @EnableWebSecurity
 public class AppConfig {
+
+    @Value("${MAIL_SENDER_USERNAME}")
+    private String mailSenderUsername;
+
+    @Value("${MAIL_SENDER_PASSWORD}")
+    private String mailSenderPassword;
 
     /**
      * Configures the security filter chain for HTTP requests.
@@ -116,8 +123,8 @@ public class AppConfig {
         mailSender.setHost("smtp.gmail.com");
         mailSender.setPort(587);
 
-        mailSender.setUsername("noah.alvandi.dev@gmail.com");
-        mailSender.setPassword("zyct rwyw amfh bbzc");
+        mailSender.setUsername(mailSenderUsername);
+        mailSender.setPassword(mailSenderPassword);
 
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
