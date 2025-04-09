@@ -59,7 +59,7 @@ public class PasswordResetServiceImplementation implements PasswordResetService 
     }
 
     @Override
-    public Integer getUserIdFromToken(String token) {
+    public UUID getUserIdFromToken(String token) {
         PasswordResetToken prt = resetTokens.get(token);
         return prt != null ? prt.getUserId() : null;
     }

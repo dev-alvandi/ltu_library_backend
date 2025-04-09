@@ -6,13 +6,15 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Entity
 @Data
 public class MagazineCategory {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int magazineCategoryId;
+    @GeneratedValue()
+    private UUID magazineCategoryId;
 
     private String subject;
 }

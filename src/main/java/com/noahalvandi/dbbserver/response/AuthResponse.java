@@ -1,5 +1,6 @@
 package com.noahalvandi.dbbserver.response;
 
+import com.noahalvandi.dbbserver.dto.response.UserDto;
 import lombok.*;
 
 @Getter
@@ -8,7 +9,8 @@ import lombok.*;
 @AllArgsConstructor
 public class AuthResponse {
 
-    private String jwt;
+    private String token;
+    private UserDto user;
     private boolean status;
 }
 

@@ -1,6 +1,12 @@
 package com.noahalvandi.dbbserver.controller;
 
 import com.noahalvandi.dbbserver.configuration.JwtProvider;
+import com.noahalvandi.dbbserver.dto.request.LoginRequest;
+import com.noahalvandi.dbbserver.dto.request.PasswordResetRequest;
+import com.noahalvandi.dbbserver.dto.request.RequestPasswordResetRequest;
+import com.noahalvandi.dbbserver.dto.request.RegisterRequest;
+import com.noahalvandi.dbbserver.dto.response.UserDto;
+import com.noahalvandi.dbbserver.dto.response.mapper.UserDtoMapper;
 import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
@@ -8,22 +14,23 @@ import com.noahalvandi.dbbserver.response.AuthResponse;
 import com.noahalvandi.dbbserver.service.CustomUserDetailsServiceImplementation;
 import com.noahalvandi.dbbserver.service.PasswordResetService;
 import com.noahalvandi.dbbserver.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -43,6 +50,10 @@ public class AuthController {
 
     @Autowired
     private PasswordResetService passwordResetService;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
     @Autowired
     private UserService userService;
 
@@ -52,82 +63,79 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> registerNewUser(@RequestBody User user) throws UserException {
+    public ResponseEntity<AuthResponse> registerNewUser(@Valid @RequestBody RegisterRequest request) throws UserException {
 
-        String firstName = user.getFirstName().toLowerCase();
-        String lastName = user.getLastName().toLowerCase();
-        LocalDate dateOfBirth = user.getDateOfBirth();
-        String phoneNumber = user.getPhoneNumber();
-        String city = user.getCity().toLowerCase();
-        String street = user.getStreet().toLowerCase();
-        String postalCode = user.getPostalCode().toLowerCase();
-        String email = user.getEmail().toLowerCase();
-        String password = user.getPassword();
+        String email = request.getEmail().toLowerCase();
 
-        System.out.println(dateOfBirth);
-
-        User doesUserAlreadyExit = userRepository.findByEmail(email);
-
-        if (doesUserAlreadyExit != null) {
-            throw new UserException("User already exist with the entered email address.");
+        if (userRepository.findByEmail(email) != null) {
+            throw new UserException("User already exists.");
         }
 
-        User createdUser = new User();
-        createdUser.setFirstName(firstName);
-        createdUser.setLastName(lastName);
-        createdUser.setDateOfBirth(dateOfBirth);
-        createdUser.setPhoneNumber(phoneNumber);
-        createdUser.setCity(city);
-        createdUser.setStreet(street);
-        createdUser.setPostalCode(postalCode);
-        createdUser.setEmail(email);
-        createdUser.setPassword(passwordEncoder.encode(password));
-        createdUser.setUserType(userService.determineUserTypeByEmail(email, firstName, lastName));
+        User user = new User();
+        user.setFirstName(request.getFirstName().toLowerCase());
+        user.setLastName(request.getLastName().toLowerCase());
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setCity(request.getCity().toLowerCase());
+        user.setStreet(request.getStreet().toLowerCase());
+        user.setPostalCode(request.getPostalCode().toLowerCase());
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setUserType(userService.determineUserTypeByEmail(email, request.getFirstName(), request.getLastName()));
 
-        User savedUser = userRepository.save(createdUser);
+        User savedUser = userRepository.save(user);
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(email, password);
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, request.getPassword())
+        );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String token = jwtProvider.generateToken(authentication);
+        UserDto userDto = UserDtoMapper.toDto(savedUser);
 
-        AuthResponse res = new AuthResponse(token, true);
-
-        return new ResponseEntity<>(res, HttpStatus.CREATED);
+        return new ResponseEntity<>(new AuthResponse(token, userDto, true), HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody User user) throws UserException {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) throws UserException {
 
-        String email = user.getEmail().toLowerCase();
-        String password = user.getPassword();
+        String email = request.getEmail().toLowerCase();
+        String password = request.getPassword();
 
-        Authentication authentication = authenticate(email, password);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password)
+            );
 
-        String token = jwtProvider.generateToken(authentication);
-        System.out.println(token);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        AuthResponse res = new AuthResponse(token, true);
+            // Use authenticated principal for token + user lookup
+            User foundUser = userRepository.findByEmail(email);
+            if (foundUser == null) {
+                throw new UserException("User not found");
+            }
 
-        return new ResponseEntity<>(res, HttpStatus.OK);
+            UserDto userDto = UserDtoMapper.toDto(foundUser);
+            String token = jwtProvider.generateToken(authentication);
+
+            return ResponseEntity.ok(new AuthResponse(token, userDto, true));
+        } catch (BadCredentialsException ex) {
+            throw new UserException("Invalid email or password");
+        }
     }
 
     @PostMapping("/request-password-reset")
-    public ResponseEntity<String> requestPasswordReset(@RequestBody Map<String, String> request) {
-        System.out.println(request);
-
-        String email = request.get("email");
-        passwordResetService.sendPasswordResetToken(email);
+    public ResponseEntity<String> requestPasswordReset(@Valid @RequestBody RequestPasswordResetRequest request) {
+        passwordResetService.sendPasswordResetToken(request.getEmail());
         return ResponseEntity.ok("Reset link sent if email exists.");
     }
 
     @PostMapping("/password-reset")
-    public ResponseEntity<String> resetPassword(@RequestBody Map<String, String> request) {
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
 
-        String token = request.get("token");
-        String newPassword = request.get("password");
-        String confirmNewPassword = request.get("confirmPassword");
+        String token = request.getToken();
+        String newPassword = request.getPassword();
+        String confirmNewPassword = request.getConfirmPassword();
 
         if (!passwordResetService.isValidToken(token)) {
             return ResponseEntity.badRequest().body("Invalid or expired token");
@@ -137,13 +145,17 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Password and confirm password do not match");
         }
 
-        Integer userId = passwordResetService.getUserIdFromToken(token);
+        UUID userId = passwordResetService.getUserIdFromToken(token);
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
 
-        // Hash password and update
-        User user = userRepository.findById(userId).orElseThrow();
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+
+        User user = optionalUser.get();
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 

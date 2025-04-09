@@ -5,13 +5,14 @@ import lombok.Data;
 import lombok.Getter;
 
 import java.util.Date;
+import java.util.UUID;
 
 @Entity
 @Data
 public class Reservation {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int reservationId;
+    @GeneratedValue()
+    private UUID reservationId;
 
     @ManyToOne
     @JoinColumn(name = "userId")

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.Getter;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Entity
 @Data
@@ -13,8 +14,8 @@ import java.time.LocalDate;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int userId;
+    @GeneratedValue()
+    private UUID userId;
 
     private String firstName;
     private String lastName;

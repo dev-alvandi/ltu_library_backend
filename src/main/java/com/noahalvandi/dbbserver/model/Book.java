@@ -4,13 +4,15 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 
+import java.util.UUID;
+
 @Entity
 @Data
 public class Book {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int bookId;
+    @GeneratedValue()
+    private UUID bookId;
 
     private String title;
     private String isbn;

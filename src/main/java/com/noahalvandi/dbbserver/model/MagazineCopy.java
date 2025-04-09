@@ -4,13 +4,15 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 
+import java.util.UUID;
+
 @Entity
 @Data
 public class MagazineCopy {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer magazineCopyId;
+    @GeneratedValue()
+    private UUID magazineCopyId;
 
     private String barcode;
     private String physicalLocation;

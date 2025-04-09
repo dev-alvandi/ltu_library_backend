@@ -14,6 +14,7 @@ import org.mockito.Spy;
 import org.springframework.mail.javamail.JavaMailSender;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -45,7 +46,7 @@ class PasswordResetServiceImplementationTest {
         // Given
         String email = "test@example.com";
         User user = new User();
-        user.setUserId(1);
+        user.setUserId(UUID.randomUUID());
         user.setEmail(email);
 
         when(userRepository.findByEmail(email)).thenReturn(user);
@@ -77,7 +78,7 @@ class PasswordResetServiceImplementationTest {
     void isValidToken_shouldReturnTrueIfNotExpired() {
         // Given
         String token = "token123";
-        int userId = 1;
+        UUID userId = UUID.randomUUID();
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(30);
         PasswordResetToken tokenObj = new PasswordResetToken(userId, expiresAt);
 
@@ -94,7 +95,7 @@ class PasswordResetServiceImplementationTest {
     void isValidToken_shouldReturnFalseIfExpired() {
         // Given
         String token = "token123";
-        int userId = 1;
+        UUID userId = UUID.randomUUID();
         LocalDateTime expiredTime = LocalDateTime.now().minusMinutes(1);
         PasswordResetToken tokenObj = new PasswordResetToken(userId, expiredTime);
 
@@ -110,10 +111,10 @@ class PasswordResetServiceImplementationTest {
     @Test
     void getUserIdFromToken_shouldReturnUserIdIfValid() {
         String token = "valid-token";
-        int userId = 42;
+        UUID userId = UUID.randomUUID();
         passwordResetService.getResetTokensMap().put(token, new PasswordResetToken(userId, LocalDateTime.now().plusMinutes(5)));
 
-        Integer result = passwordResetService.getUserIdFromToken(token);
+        UUID result = passwordResetService.getUserIdFromToken(token);
 
         assertEquals(userId, result);
     }
@@ -127,7 +128,7 @@ class PasswordResetServiceImplementationTest {
     @Test
     void invalidateToken_shouldRemoveToken() {
         String token = "delete-me";
-        passwordResetService.getResetTokensMap().put(token, new PasswordResetToken(1, LocalDateTime.now().plusMinutes(5)));
+        passwordResetService.getResetTokensMap().put(token, new PasswordResetToken(UUID.randomUUID(), LocalDateTime.now().plusMinutes(5)));
 
         passwordResetService.invalidateToken(token);
 

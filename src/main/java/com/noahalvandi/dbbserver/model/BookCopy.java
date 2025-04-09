@@ -3,13 +3,15 @@ package com.noahalvandi.dbbserver.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Entity
 @Data
 public class BookCopy {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int copyId;
+    @GeneratedValue()
+    private UUID copyId;
 
     private String barcode;
     private String physicalLocation;

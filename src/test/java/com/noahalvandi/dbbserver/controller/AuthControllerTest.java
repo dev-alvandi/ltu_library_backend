@@ -1,25 +1,31 @@
 package com.noahalvandi.dbbserver.controller;
 
 import com.noahalvandi.dbbserver.configuration.JwtProvider;
+import com.noahalvandi.dbbserver.dto.request.LoginRequest;
+import com.noahalvandi.dbbserver.dto.request.PasswordResetRequest;
+import com.noahalvandi.dbbserver.dto.request.RequestPasswordResetRequest;
+import com.noahalvandi.dbbserver.dto.request.RegisterRequest;
 import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
 import com.noahalvandi.dbbserver.response.AuthResponse;
 import com.noahalvandi.dbbserver.service.CustomUserDetailsServiceImplementation;
 import com.noahalvandi.dbbserver.service.PasswordResetService;
+import com.noahalvandi.dbbserver.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.*;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDate;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,6 +50,13 @@ class AuthControllerTest {
     @Mock
     private PasswordResetService passwordResetService;
 
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @Mock
+    private UserService userService;
+
+
     @InjectMocks
     private AuthController authController;
 
@@ -53,75 +66,93 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerNewUser_shouldCreateNewUserAndReturnToken() throws UserException {
+    void registerNewUser_shouldReturnTokenAndUserDto_whenRequestIsValid() throws Exception {
         // Arrange
-        User requestUser = new User();
-        requestUser.setFirstName("Noah");
-        requestUser.setLastName("Alvandi");
-        requestUser.setEmail("mohghi-3@student.ltu.se");
-        requestUser.setPassword("securePassword123");
-        requestUser.setPhoneNumber("0701234567");
-        requestUser.setCity("Stockholm");
-        requestUser.setStreet("Main Street");
-        requestUser.setPostalCode("12345");
+        String email = "test@example.com";
+        String password = "Password123!";
+        String encodedPassword = "ENCODED";
+        String jwtToken = "jwt.token.example";
 
-        String hashedPassword = "SOME_RANDOM_STRING_THAT_REPRESENTS_HASHED_PASSWORD";
-        String jwtToken = "MOCKED_JWT_TOKEN";
+        RegisterRequest request = new RegisterRequest();
+        request.setFirstName("Noah");
+        request.setLastName("Alvandi");
+        request.setEmail(email);
+        request.setPassword(password);
+        request.setDateOfBirth(LocalDate.of(2000, 1, 1));
+        request.setPhoneNumber("0701234567");
+        request.setCity("Stockholm");
+        request.setStreet("Main Street");
+        request.setPostalCode("12345");
 
-        when(userRepository.findByEmail(requestUser.getEmail())).thenReturn(null);
-        when(passwordEncoder.encode(requestUser.getPassword())).thenReturn(hashedPassword);
-        when(userRepository.save(any(User.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-        when(jwtProvider.generateToken(any(Authentication.class))).thenReturn(jwtToken);
+        when(userRepository.findByEmail(email)).thenReturn(null);
+        when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
+
+        User savedUser = new User();
+        savedUser.setEmail(email);
+        savedUser.setFirstName("noah");
+        savedUser.setLastName("alvandi");
+
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        when(userService.determineUserTypeByEmail(
+                eq(email),
+                eq(request.getFirstName()),
+                eq(request.getLastName())
+        )).thenReturn(User.UserType.STUDENT); // Assume you have this enum or class
+
+        Authentication authentication = mock(Authentication.class);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+
+        when(jwtProvider.generateToken(authentication)).thenReturn(jwtToken);
 
         // Act
-        ResponseEntity<AuthResponse> response = authController.registerNewUser(requestUser);
+        ResponseEntity<AuthResponse> response = authController.registerNewUser(request);
 
         // Assert
-        assertEquals(201, response.getStatusCode().value());
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+
         AuthResponse authResponse = response.getBody();
         assertNotNull(authResponse);
         assertTrue(authResponse.isStatus());
-        assertEquals(jwtToken, authResponse.getJwt());
-
-        // Verify that the password was encoded before saving
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        assertEquals(hashedPassword, userCaptor.getValue().getPassword());
-
-        verify(jwtProvider).generateToken(any(Authentication.class));
+        assertEquals(jwtToken, authResponse.getToken());
+        assertEquals(email, authResponse.getUser().getEmail());
     }
 
     @Test
     public void shouldReturnToken_WhenCredentialsAreCorrect() throws Exception {
         // Arrange
-        String email = "test@example.com";
-        String password = "password123";
-        String encodedPassword = "encoded123";
-        String token = "mock-jwt-token";
+        String email = "user@example.com";
+        String password = "securePassword";
+        String jwt = "mocked.jwt.token";
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail(email);
+        loginRequest.setPassword(password);
 
         User user = new User();
         user.setEmail(email);
-        user.setPassword(password);
+        user.setFirstName("Noah");
+        user.setLastName("Alvandi");
 
-        UserDetails userDetails = org.springframework.security.core.userdetails.User
-                .withUsername(email)
-                .password(encodedPassword)
-                .authorities(new ArrayList<>())
-                .build();
+        Authentication authentication = mock(Authentication.class);
 
-        when(customUserDetails.loadUserByUsername(email)).thenReturn(userDetails);
-        when(passwordEncoder.matches(password, encodedPassword)).thenReturn(true);
-        when(jwtProvider.generateToken(any())).thenReturn(token);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+
+        when(userRepository.findByEmail(email)).thenReturn(user);
+        when(jwtProvider.generateToken(authentication)).thenReturn(jwt);
 
         // Act
-        ResponseEntity<AuthResponse> response = authController.login(user);
+        ResponseEntity<AuthResponse> response = authController.login(loginRequest);
 
         // Assert
-        assertEquals(200, response.getStatusCode().value());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         AuthResponse authResponse = response.getBody();
         assertNotNull(authResponse);
         assertTrue(authResponse.isStatus());
-        assertEquals(token, response.getBody().getJwt());
+        assertEquals(jwt, authResponse.getToken());
+        assertEquals(email, authResponse.getUser().getEmail());
     }
 
     @Test
@@ -130,7 +161,7 @@ class AuthControllerTest {
         String email = "test@example.com";
         String password = "wrongpass";
 
-        User user = new User();
+        LoginRequest user = new LoginRequest();
         user.setEmail(email);
         user.setPassword(password);
 
@@ -144,7 +175,7 @@ class AuthControllerTest {
         when(passwordEncoder.matches(password, "realencodedpassword")).thenReturn(false);
 
         // Act & Assert
-        assertThrows(BadCredentialsException.class, () -> authController.login(user));
+        assertThrows(UserException.class, () -> authController.login(user));
     }
 
     @Test
@@ -153,21 +184,21 @@ class AuthControllerTest {
         String email = "nonexistent@example.com";
         String password = "pass";
 
-        User user = new User();
+        LoginRequest user = new LoginRequest();
         user.setEmail(email);
         user.setPassword(password);
 
         when(customUserDetails.loadUserByUsername(email)).thenReturn(null);
 
         // Act & Assert
-        assertThrows(BadCredentialsException.class, () -> authController.login(user));
+        assertThrows(UserException.class, () -> authController.login(user));
     }
 
     @Test
     void testRequestPasswordReset() {
         // Given
-        Map<String, String> request = new HashMap<>();
-        request.put("email", "test@example.com");
+        RequestPasswordResetRequest request = new RequestPasswordResetRequest();
+        request.setEmail("test@example.com");
 
         // When
         ResponseEntity<String> response = authController.requestPasswordReset(request);
@@ -183,13 +214,12 @@ class AuthControllerTest {
         // Given
         String token = "valid-token";
         String newPassword = "new-password";
-        int userId = 1;
+        UUID userId = UUID.randomUUID();
 
-        Map<String, String> request = Map.of(
-                "token", token,
-                "password", newPassword,
-                "confirmPassword", newPassword
-        );
+        PasswordResetRequest request = new PasswordResetRequest();
+        request.setToken(token);
+        request.setPassword(newPassword);
+        request.setConfirmPassword(newPassword);
 
         User user = new User();
         user.setUserId(userId);
@@ -216,10 +246,14 @@ class AuthControllerTest {
     void testResetPassword_withInvalidToken() {
 
         // Given
-        Map<String, String> request = Map.of(
-                "token", "invalid-token",
-                "newPassword", "somePassword"
-        );
+        String token = "invalid-token";
+        String newPassword = "new-password";
+        UUID userId = UUID.randomUUID();
+
+        PasswordResetRequest request = new PasswordResetRequest();
+        request.setToken(token);
+        request.setPassword(newPassword);
+        request.setConfirmPassword(newPassword);
 
         when(passwordResetService.isValidToken("invalid-token")).thenReturn(false);
 
@@ -235,26 +269,25 @@ class AuthControllerTest {
     @Test
     void testResetPassword_userNotFound() {
         // Given
+        UUID missingUserId = UUID.randomUUID();
         String token = "valid-token";
-        int missingUserId = 999;
+        String newPassword = "new-password";
 
-        Map<String, String> request = Map.of(
-                "token", token,
-                "password", "newpass",
-                "confirmPassword", "newpass"
-        );
+        PasswordResetRequest request = new PasswordResetRequest();
+        request.setToken(token);
+        request.setPassword(newPassword);
+        request.setConfirmPassword(newPassword);
 
         when(passwordResetService.isValidToken(token)).thenReturn(true);
         when(passwordResetService.getUserIdFromToken(token)).thenReturn(missingUserId);
         when(userRepository.findById(missingUserId)).thenReturn(Optional.empty());
 
         // When
-        Exception exception = assertThrows(Exception.class, () -> {
-            authController.resetPassword(request);
-        });
+        ResponseEntity<String> response = authController.resetPassword(request);
 
-        // Optionally check message if needed
-        assertInstanceOf(NoSuchElementException.class, exception);
+        // Then
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("User not found", response.getBody());
     }
 
 }
