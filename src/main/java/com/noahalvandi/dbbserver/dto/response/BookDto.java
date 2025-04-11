@@ -19,4 +19,8 @@ public class BookDto {
     private String imageUrl;
     private BookCategory bookCategory;
     private Book.BookType bookType;
+
+//    Derived attributes
+    private int numberOfCopies;
+    private int numberOfAvailableToBorrowCopies;
 }

@@ -28,6 +28,10 @@ public class MagazineCopy {
     @JoinColumn(name = "magazine_id", nullable = false)
     private Magazine magazine;
 
+    @Enumerated(EnumType.ORDINAL)
+    @Column(nullable = false)
+    private IsItemReferenceCopy isReferenceCopy;
+
     @Getter
     public enum MagazineCopyStatus {
         AVAILABLE(0),
