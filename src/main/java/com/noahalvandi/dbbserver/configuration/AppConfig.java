@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
+import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
@@ -41,11 +42,17 @@ import java.util.Properties;
 @EnableWebSecurity
 public class AppConfig {
 
-    @Value("${MAIL_SENDER_USERNAME}")
-    private String mailSenderUsername;
+//    @Value("${MAIL_SENDER_USERNAME}")
+//    private String mailSenderUsername;
+//
+//    @Value("${MAIL_SENDER_PASSWORD}")
+//    private String mailSenderPassword;
 
-    @Value("${MAIL_SENDER_PASSWORD}")
-    private String mailSenderPassword;
+    Dotenv dotenv = Dotenv.configure().load();
+
+    private final String mailSenderUsername = dotenv.get("MAIL_SENDER_USERNAME");
+
+    private final String mailSenderPassword = dotenv.get("MAIL_SENDER_PASSWORD");
 
     /**
      * Configures the security filter chain for HTTP requests.
