@@ -14,15 +14,19 @@ public class MagazineCopy {
     @GeneratedValue()
     private UUID magazineCopyId;
 
+    @Column(length = 50, nullable = false)
     private String barcode;
+
+    @Column(length = 50)
     private String physicalLocation;
 
-    @ManyToOne
-    @JoinColumn(name = "magazineId")
-    private Magazine magazine;
-
     @Enumerated(EnumType.ORDINAL)
+    @Column(nullable = false)
     private MagazineCopyStatus status;
+
+    @ManyToOne
+    @JoinColumn(name = "magazine_id", nullable = false)
+    private Magazine magazine;
 
     @Getter
     public enum MagazineCopyStatus {

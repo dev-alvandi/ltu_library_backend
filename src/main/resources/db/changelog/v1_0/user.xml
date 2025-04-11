@@ -1,0 +1,9 @@
+<changeSet id="add-email-verification-fields-to-user" author="Noah Alvandi">
+    <addColumn tableName="user">
+        <column name="email_verified" type="BOOLEAN" defaultValueBoolean="false">
+            <constraints nullable="false"/>
+        </column>
+        <column name="email_verification_token" type="VARCHAR(255)"/>
+        <column name="email_verification_token_expiry" type="DATETIME"/>
+    </addColumn>
+</changeSet>

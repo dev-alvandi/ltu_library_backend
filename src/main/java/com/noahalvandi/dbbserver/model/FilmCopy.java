@@ -11,18 +11,23 @@ public class FilmCopy {
 
     @Id
     @GeneratedValue()
-    private UUID copyId;
+    private UUID filmCopyId;
 
+    @Column(nullable = false, unique = true, length = 50)
     private String barcode;
+
+    @Column(length = 50)
     private String physicalLocation;
 
     @ManyToOne
-    @JoinColumn(name = "filmId")
+    @JoinColumn(name = "film_id", nullable = false)
     private Film film;
 
     @Enumerated(EnumType.ORDINAL)
-    private ItemStatus status;;
+    @Column(nullable = false)
+    private ItemStatus status;
 
     @Enumerated(EnumType.ORDINAL)
+    @Column(nullable = false)
     private IsItemReferenceCopy isReferenceCopy;
 }

@@ -1,11 +1,10 @@
 package com.noahalvandi.dbbserver.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -16,5 +15,9 @@ public class MagazineCategory {
     @GeneratedValue()
     private UUID magazineCategoryId;
 
+    @Column(length = 50, nullable = false, unique = true)
     private String subject;
+
+//    @OneToMany(mappedBy = "magazineCategory")
+//    private List<Magazine> magazines = new ArrayList<>();
 }

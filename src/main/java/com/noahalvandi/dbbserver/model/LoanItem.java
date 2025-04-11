@@ -2,8 +2,9 @@ package com.noahalvandi.dbbserver.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -15,16 +16,18 @@ public class LoanItem {
     private UUID loanItemId;
 
     @ManyToOne
-    @JoinColumn(name = "loanId")
+    @JoinColumn(name = "loan_id", nullable = false)
     private Loan loan;
 
     @ManyToOne
-    @JoinColumn(name = "bookCopyId")
+    @JoinColumn(name = "book_copy_id", nullable = false)
     private BookCopy bookCopy;
 
     @ManyToOne
-    @JoinColumn(name = "filmCopyId")
+    @JoinColumn(name = "film_copy_id", nullable = false)
     private FilmCopy filmCopy;
 
-    private Date dueDate;
+    @Column(nullable = false)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDateTime dueDate;
 }

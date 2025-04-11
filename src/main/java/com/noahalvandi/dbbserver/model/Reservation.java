@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -14,27 +14,29 @@ public class Reservation {
     @GeneratedValue()
     private UUID reservationId;
 
-    @ManyToOne
-    @JoinColumn(name = "userId")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "bookId")
+    @JoinColumn(name = "book_id")
     private Book book;
 
     @ManyToOne
-    @JoinColumn(name = "filmId")
+    @JoinColumn(name = "film_id")
     private Film film;
 
-    private Date reservedAt;
+    @Column(nullable = false)
+    private LocalDateTime reservedAt;
 
     @Enumerated(EnumType.ORDINAL)
+    @Column(nullable = false)
     private ReservationStatus status;
 
     @Getter
     public enum ReservationStatus {
-        FULFILLED(1),
         CANCELED(0),
+        FULFILLED(1),
         PENDING(2);
 
         private final int code;

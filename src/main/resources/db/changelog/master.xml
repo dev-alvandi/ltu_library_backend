@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- Include all versioned changelogs in order -->
+
+    <!-- Version 1.0 -->
+<!--    <include file="v1_0/v1_0.xml" relativeToChangelogFile="true"/>-->
+
+
+    <!-- Add future versions below -->
+    <!-- <include file="db/changelog/v3_0/v3_0.xml" relativeToChangelogFile="true"/> -->
+
+</databaseChangeLog>
