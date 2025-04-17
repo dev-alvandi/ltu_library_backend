@@ -1,29 +1,29 @@
 package com.noahalvandi.dbbserver.dto.response.mapper;
 
-import com.noahalvandi.dbbserver.dto.response.UserDto;
+import com.noahalvandi.dbbserver.dto.response.UserResponse;
 import com.noahalvandi.dbbserver.model.User;
 
-public class UserDtoMapper {
+public class UserResponseMapper {
 
-    public static UserDto toDto(User user) {
-        UserDto userDto = new UserDto();
+    public static UserResponse toDto(User user) {
+        UserResponse userResponse = new UserResponse();
 
-        userDto.setUserId(user.getUserId());
+        userResponse.setUserId(user.getUserId());
 
-        userDto.setFirstName(user.getFirstName());
-        userDto.setLastName(user.getLastName());
+        userResponse.setFirstName(user.getFirstName());
+        userResponse.setLastName(user.getLastName());
 
-        userDto.setDateOfBirth(user.getDateOfBirth());
+        userResponse.setDateOfBirth(user.getDateOfBirth());
 
-        userDto.setPhoneNumber(user.getPhoneNumber());
-        userDto.setCity(user.getCity());
-        userDto.setStreet(user.getStreet());
-        userDto.setPostalCode(user.getPostalCode());
+        userResponse.setPhoneNumber(user.getPhoneNumber());
+        userResponse.setCity(user.getCity());
+        userResponse.setStreet(user.getStreet());
+        userResponse.setPostalCode(user.getPostalCode());
 
-        userDto.setEmail(user.getEmail());
+        userResponse.setEmail(user.getEmail());
 
-        userDto.setUserType(user.getUserType());
+        userResponse.setUserType(user.getUserType());
 
-        return userDto;
+        return userResponse;
     }
 }

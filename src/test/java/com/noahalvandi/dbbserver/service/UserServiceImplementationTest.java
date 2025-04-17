@@ -1,7 +1,9 @@
 package com.noahalvandi.dbbserver.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.noahalvandi.dbbserver.configuration.JwtProvider;
 import com.noahalvandi.dbbserver.model.User;
+import com.noahalvandi.dbbserver.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -14,15 +16,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class UserServiceImplementationTest {
+
     private HttpClient httpClient;
     private ObjectMapper objectMapper;
+    private UserRepository userRepository;
+    private JwtProvider jwtProvider;
     private UserServiceImplementation userService;
 
     @BeforeEach
     void setUp() {
         httpClient = mock(HttpClient.class);
         objectMapper = new ObjectMapper(); // real ObjectMapper works fine here
-        userService = new UserServiceImplementation(httpClient, objectMapper);
+        userService = new UserServiceImplementation(httpClient, objectMapper, jwtProvider, userRepository);
     }
 
     @Test

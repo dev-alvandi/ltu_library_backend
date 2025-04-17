@@ -1,4 +1,4 @@
 package com.noahalvandi.dbbserver.dto.response.mapper;
 
-public class FilmDtoMapper {
+public class FilmResponseMapper {
 }

@@ -5,8 +5,8 @@ import lombok.Getter;
 @Getter
 public enum ItemStatus {
     AVAILABLE(0),
-    CHECKED_OUT(1),
-    LOST(2);
+    LOST(1),
+    BORROWED(2);
 
     private final int code;
 

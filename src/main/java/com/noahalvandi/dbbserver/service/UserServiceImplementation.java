@@ -2,8 +2,12 @@ package com.noahalvandi.dbbserver.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.noahalvandi.dbbserver.configuration.JwtProvider;
+import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.User;
+import com.noahalvandi.dbbserver.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -15,12 +19,17 @@ import java.net.http.HttpResponse;
 @Service
 public class UserServiceImplementation implements UserService {
 
+
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private final JwtProvider jwtProvider;
+    private final UserRepository userRepository;
 
-    public UserServiceImplementation(HttpClient httpClient, ObjectMapper objectMapper) {
+    public UserServiceImplementation(HttpClient httpClient, ObjectMapper objectMapper, JwtProvider jwtProvider, UserRepository userRepository) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
+        this.jwtProvider = jwtProvider;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -65,5 +74,15 @@ public class UserServiceImplementation implements UserService {
 
         return User.UserType.PUBLIC;
 
+    }
+
+    @Override
+    public User findUserProfileByJwt(String jwt) throws UserException {
+        String email = jwtProvider.getEmailFromToken(jwt);
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new UserException("No user with the email, \"%s\", found".formatted(email));
+        }
+        return user;
     }
 }

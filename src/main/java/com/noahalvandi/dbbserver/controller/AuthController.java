@@ -5,16 +5,17 @@ import com.noahalvandi.dbbserver.dto.request.LoginRequest;
 import com.noahalvandi.dbbserver.dto.request.PasswordResetRequest;
 import com.noahalvandi.dbbserver.dto.request.RequestPasswordResetRequest;
 import com.noahalvandi.dbbserver.dto.request.RegisterRequest;
-import com.noahalvandi.dbbserver.dto.response.UserDto;
-import com.noahalvandi.dbbserver.dto.response.mapper.UserDtoMapper;
+import com.noahalvandi.dbbserver.dto.response.UserResponse;
+import com.noahalvandi.dbbserver.dto.response.mapper.UserResponseMapper;
 import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
-import com.noahalvandi.dbbserver.response.AuthResponse;
+import com.noahalvandi.dbbserver.dto.projection.AuthResponse;
 import com.noahalvandi.dbbserver.service.CustomUserDetailsServiceImplementation;
 import com.noahalvandi.dbbserver.service.PasswordResetService;
 import com.noahalvandi.dbbserver.service.UserService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,10 +29,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -91,9 +92,9 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String token = jwtProvider.generateToken(authentication);
-        UserDto userDto = UserDtoMapper.toDto(savedUser);
+        UserResponse userResponse = UserResponseMapper.toDto(savedUser);
 
-        return new ResponseEntity<>(new AuthResponse(token, userDto, true), HttpStatus.CREATED);
+        return new ResponseEntity<>(new AuthResponse(token, userResponse, true), HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
@@ -115,10 +116,10 @@ public class AuthController {
                 throw new UserException("User not found");
             }
 
-            UserDto userDto = UserDtoMapper.toDto(foundUser);
+            UserResponse userResponse = UserResponseMapper.toDto(foundUser);
             String token = jwtProvider.generateToken(authentication);
 
-            return ResponseEntity.ok(new AuthResponse(token, userDto, true));
+            return ResponseEntity.ok(new AuthResponse(token, userResponse, true));
         } catch (BadCredentialsException ex) {
             throw new UserException("Invalid email or password");
         }
@@ -162,6 +163,16 @@ public class AuthController {
 
         passwordResetService.invalidateToken(token);
         return ResponseEntity.ok("Password updated successfully");
+    }
+
+    @GetMapping("/is-jwt-valid")
+    public ResponseEntity<UserResponse> isJwtValid(@RequestHeader("Authorization") String jwtToken) throws UserException {
+
+        User user = userService.findUserProfileByJwt(jwtToken);
+
+        UserResponse userResponse = UserResponseMapper.toDto(user);
+
+        return new ResponseEntity<>(userResponse, HttpStatus.OK);
     }
 
     private Authentication authenticate(String username, String password) {

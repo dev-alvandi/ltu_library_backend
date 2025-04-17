@@ -20,14 +20,23 @@ public class LoanItem {
     private Loan loan;
 
     @ManyToOne
-    @JoinColumn(name = "book_copy_id", nullable = false)
+    @JoinColumn(name = "book_copy_id")
     private BookCopy bookCopy;
 
     @ManyToOne
-    @JoinColumn(name = "film_copy_id", nullable = false)
+    @JoinColumn(name = "film_copy_id")
     private FilmCopy filmCopy;
 
     @Column(nullable = false)
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDateTime dueDate;
+
+    @Column
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDateTime returnedDate;
+
+    @Transient
+    public boolean isReturnedLate() {
+        return returnedDate != null && returnedDate.isAfter(dueDate);
+    }
 }

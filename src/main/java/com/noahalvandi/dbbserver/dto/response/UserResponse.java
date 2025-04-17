@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
-public class UserDto {
+public class UserResponse {
 
     private UUID userId;
 

@@ -1,17 +1,15 @@
 package com.noahalvandi.dbbserver.dto.response.mapper;
 
-import com.noahalvandi.dbbserver.dto.response.BookDto;
+import com.noahalvandi.dbbserver.dto.response.BookResponse;
 import com.noahalvandi.dbbserver.model.Book;
-import com.noahalvandi.dbbserver.repository.BookRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 
 
-public class BookDtoMapper {
+public class BookResponseMapper {
 
 
-    public static BookDto toDto(Book book) {
+    public static BookResponse toDto(Book book) {
 
-        BookDto dto = new BookDto();
+        BookResponse dto = new BookResponse();
 
         dto.setBookId(book.getBookId());
         dto.setTitle(book.getTitle());
