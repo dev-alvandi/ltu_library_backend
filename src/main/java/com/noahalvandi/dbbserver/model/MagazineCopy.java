@@ -14,10 +14,10 @@ public class MagazineCopy {
     @GeneratedValue()
     private UUID magazineCopyId;
 
-    @Column(length = 50, nullable = false)
+    @Column(length = 50, nullable = false, unique = true)
     private String barcode;
 
-    @Column(length = 50)
+    @Column(length = 150)
     private String physicalLocation;
 
     @Enumerated(EnumType.ORDINAL)

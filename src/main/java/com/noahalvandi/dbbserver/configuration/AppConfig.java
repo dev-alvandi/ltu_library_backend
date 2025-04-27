@@ -1,9 +1,14 @@
 package com.noahalvandi.dbbserver.configuration;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
+import com.noahalvandi.dbbserver.util.GlobalConstants;
 import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
@@ -45,11 +50,20 @@ public class AppConfig {
 //    @Value("${MAIL_SENDER_PASSWORD}")
 //    private String mailSenderPassword;
 
-    Dotenv dotenv = Dotenv.configure().load();
+    private final String MAIL_SENDER_USERNAME;
+    private final String MAIL_SENDER_PASSWORD;
+    private final String AWS_ACCESS_KEY;
+    private final String AWS_SECRET_KEY;
+    private final String AWS_BUCKET_REGION;
 
-    private final String mailSenderUsername = dotenv.get("MAIL_SENDER_USERNAME");
-
-    private final String mailSenderPassword = dotenv.get("MAIL_SENDER_PASSWORD");
+    public AppConfig() {
+        Dotenv dotenv = Dotenv.configure().load();
+        this.MAIL_SENDER_USERNAME = dotenv.get("MAIL_SENDER_USERNAME");
+        this.MAIL_SENDER_PASSWORD = dotenv.get("MAIL_SENDER_PASSWORD");
+        this.AWS_ACCESS_KEY = dotenv.get("AWS_ACCESS_KEY");
+        this.AWS_SECRET_KEY = dotenv.get("AWS_SECRET_KEY");
+        this.AWS_BUCKET_REGION = dotenv.get("AWS_BUCKET_REGION");
+    }
 
     /**
      * Configures the security filter chain for HTTP requests.
@@ -84,7 +98,7 @@ public class AppConfig {
             @Override
             public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
                 CorsConfiguration cfg = new CorsConfiguration();
-                cfg.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+                cfg.setAllowedOrigins(Arrays.asList(GlobalConstants.FRONTEND_BASE_URL));
                 cfg.setAllowedMethods(Collections.singletonList("*"));
                 cfg.setAllowCredentials(true);
                 cfg.setAllowedHeaders(Collections.singletonList("*"));
@@ -127,8 +141,8 @@ public class AppConfig {
         mailSender.setHost("smtp.gmail.com");
         mailSender.setPort(587);
 
-        mailSender.setUsername(mailSenderUsername);
-        mailSender.setPassword(mailSenderPassword);
+        mailSender.setUsername(MAIL_SENDER_USERNAME);
+        mailSender.setPassword(MAIL_SENDER_PASSWORD);
 
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
@@ -142,5 +156,14 @@ public class AppConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public AmazonS3 amazonS3() {
+        BasicAWSCredentials awsCredentials = new BasicAWSCredentials(AWS_ACCESS_KEY, AWS_SECRET_KEY);
+        return AmazonS3ClientBuilder.standard()
+                .withRegion(AWS_BUCKET_REGION)
+                .withCredentials(new AWSStaticCredentialsProvider(awsCredentials))
+                .build();
     }
 }

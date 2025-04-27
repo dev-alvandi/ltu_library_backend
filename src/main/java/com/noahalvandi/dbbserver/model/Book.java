@@ -38,7 +38,7 @@ public class Book {
     @Column(nullable = false, length = 100)
     private String language;
 
-    @Column(length = 1000)
+    @Column(length = 1000, unique = true)
     private String image_url;
 
     @ManyToOne()

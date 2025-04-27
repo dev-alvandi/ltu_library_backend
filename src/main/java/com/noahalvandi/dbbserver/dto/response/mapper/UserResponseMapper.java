@@ -1,7 +1,7 @@
 package com.noahalvandi.dbbserver.dto.response.mapper;
 
 import com.noahalvandi.dbbserver.dto.response.UserResponse;
-import com.noahalvandi.dbbserver.model.User;
+import com.noahalvandi.dbbserver.model.user.User;
 
 public class UserResponseMapper {
 

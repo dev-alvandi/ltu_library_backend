@@ -17,7 +17,7 @@ public class Magazine {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 20, unique = true)
     private String issueNumber;
 
     @Column(nullable = false)
@@ -26,7 +26,7 @@ public class Magazine {
     @Column(nullable = false, length = 100)
     private String language;
 
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = false, length = 1000, unique = true)
     private String image_url;
 
     @ManyToOne

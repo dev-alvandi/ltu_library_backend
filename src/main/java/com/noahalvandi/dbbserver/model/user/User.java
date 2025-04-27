@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.model;
+package com.noahalvandi.dbbserver.model.user;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
@@ -9,11 +9,11 @@ import lombok.Data;
 import lombok.Getter;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
+//@Inheritance(strategy = InheritanceType.JOINED)
+//@DiscriminatorColumn(name = "user_type", discriminatorType = DiscriminatorType.INTEGER)
 @Data
 @Table(name = "user")
 public class User {
@@ -35,7 +35,7 @@ public class User {
     private LocalDate dateOfBirth;
 
 
-    @Column(length = 100, nullable = false)
+    @Column(length = 100, nullable = false, unique = true)
     @Pattern(
             regexp = "^(\\+46|0)\\d{7,12}$",
             message = "Invalid Swedish phone number"

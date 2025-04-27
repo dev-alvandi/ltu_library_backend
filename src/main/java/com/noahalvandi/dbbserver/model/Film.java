@@ -34,7 +34,7 @@ public class Film {
     @Column(nullable = false, length = 100)
     private String language;
 
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = false, length = 1000, unique = true)
     private String image_url;
 
     @ManyToOne()

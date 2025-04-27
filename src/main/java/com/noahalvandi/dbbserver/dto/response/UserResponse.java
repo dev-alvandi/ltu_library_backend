@@ -1,6 +1,6 @@
 package com.noahalvandi.dbbserver.dto.response;
 
-import com.noahalvandi.dbbserver.model.User;
+import com.noahalvandi.dbbserver.model.user.User;
 import lombok.Data;
 
 import java.time.LocalDate;

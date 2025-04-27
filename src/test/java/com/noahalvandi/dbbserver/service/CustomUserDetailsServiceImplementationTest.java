@@ -1,6 +1,6 @@
 package com.noahalvandi.dbbserver.service;
 
-import com.noahalvandi.dbbserver.model.User;
+import com.noahalvandi.dbbserver.model.user.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

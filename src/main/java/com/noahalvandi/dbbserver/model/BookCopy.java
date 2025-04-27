@@ -16,7 +16,7 @@ public class BookCopy {
     @Column(nullable = false, unique = true, length = 50)
     private String barcode;
 
-    @Column(length = 50)
+    @Column(length = 150)
     private String physicalLocation;
 
     @ManyToOne

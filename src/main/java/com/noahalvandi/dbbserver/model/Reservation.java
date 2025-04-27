@@ -1,5 +1,6 @@
 package com.noahalvandi.dbbserver.model;
 
+import com.noahalvandi.dbbserver.model.user.User;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;

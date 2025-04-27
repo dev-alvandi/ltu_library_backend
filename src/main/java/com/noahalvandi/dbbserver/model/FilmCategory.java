@@ -15,7 +15,7 @@ public class FilmCategory {
     @GeneratedValue()
     private UUID filmCategoryId;
 
-    @Column(length = 50, nullable = false, unique = true)
+    @Column(length = 50, nullable = false)
     private String genre;
 
 //    @OneToMany(mappedBy = "filmCategory", cascade = CascadeType.ALL, orphanRemoval = true)

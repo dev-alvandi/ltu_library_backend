@@ -7,6 +7,6 @@ import lombok.Data;
 @AllArgsConstructor
 public class BooksPublishedYearRange {
 
-    private int minYear;
-    private int maxYear;
+    private Integer minYear;
+    private Integer maxYear;
 }

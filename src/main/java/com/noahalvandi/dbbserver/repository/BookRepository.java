@@ -9,10 +9,12 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
 
+@Repository
 public interface BookRepository extends JpaRepository<Book, UUID> {
 
     @EntityGraph(attributePaths = {"bookCategory"})
@@ -74,41 +76,43 @@ Page<Book> findBooksByFilters(
     List<String> findDistinctPublishersByQuery(@Param("query") String query);
 
 
-//  Searching Books
-@Query("""
-    SELECT b FROM Book b
-    WHERE (
-        (:query IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%'))
-        OR REPLACE(LOWER(b.isbn), '-', '') LIKE REPLACE(LOWER(CONCAT('%', :query, '%')), '-', '')
-        OR LOWER(b.author) LIKE LOWER(CONCAT('%', :query, '%'))
-        OR LOWER(b.publisher) LIKE LOWER(CONCAT('%', :query, '%')))
-    )
-    AND (
-        (:isAvailable IS NULL OR
-            (
-                :isAvailable = TRUE AND EXISTS (
-                    SELECT bc FROM BookCopy bc WHERE bc.book = b AND bc.status = 0
-                )
-            ) OR (
-                :isAvailable = FALSE AND NOT EXISTS (
-                    SELECT bc FROM BookCopy bc WHERE bc.book = b AND bc.status = 0
+    //  Searching Books
+    @Query("""
+        SELECT b FROM Book b
+        WHERE (
+            (:query IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%'))
+            OR REPLACE(LOWER(b.isbn), '-', '') LIKE REPLACE(LOWER(CONCAT('%', :query, '%')), '-', '')
+            OR LOWER(b.author) LIKE LOWER(CONCAT('%', :query, '%'))
+            OR LOWER(b.publisher) LIKE LOWER(CONCAT('%', :query, '%')))
+        )
+        AND (
+            (:isAvailable IS NULL OR
+                (
+                    :isAvailable = TRUE AND EXISTS (
+                        SELECT bc FROM BookCopy bc WHERE bc.book = b AND bc.status = 0
+                    )
+                ) OR (
+                    :isAvailable = FALSE AND NOT EXISTS (
+                        SELECT bc FROM BookCopy bc WHERE bc.book = b AND bc.status = 0
+                    )
                 )
             )
         )
-    )
-    AND (:minYear IS NULL OR b.publishedYear >= :minYear)
-    AND (:maxYear IS NULL OR b.publishedYear <= :maxYear)
-    AND (:categories IS NULL OR b.bookCategory.subject IN :categories)
-    AND (:languages IS NULL OR b.language IN :languages)
-""")
-Page<Book> searchWithFilters(
-        @Param("query") String query,
-        @Param("isAvailable") Boolean isAvailable,
-        @Param("minYear") Integer minYear,
-        @Param("maxYear") Integer maxYear,
-        @Param("categories") List<String> categories,
-        @Param("languages") List<String> languages,
-        Pageable pageable
-);
+        AND (:minYear IS NULL OR b.publishedYear >= :minYear)
+        AND (:maxYear IS NULL OR b.publishedYear <= :maxYear)
+        AND (:categories IS NULL OR b.bookCategory.subject IN :categories)
+        AND (:languages IS NULL OR b.language IN :languages)
+    """)
+    Page<Book> searchWithFilters(
+            @Param("query") String query,
+            @Param("isAvailable") Boolean isAvailable,
+            @Param("minYear") Integer minYear,
+            @Param("maxYear") Integer maxYear,
+            @Param("categories") List<String> categories,
+            @Param("languages") List<String> languages,
+            Pageable pageable
+    );
 
+    @Query("SELECT b FROM Book b WHERE b.bookId = :bookId")
+    Book findBookByBookId(UUID bookId);
 }

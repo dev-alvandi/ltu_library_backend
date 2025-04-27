@@ -15,7 +15,7 @@ public class BookCategory {
     @GeneratedValue()
     private UUID bookCategoryId;
 
-    @Column(length = 50, nullable = false, unique = true)
+    @Column(length = 50, nullable = false)
     private String subject;
 
 //    @OneToMany(mappedBy = "bookCategory")

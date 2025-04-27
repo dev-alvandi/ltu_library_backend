@@ -2,14 +2,18 @@ package com.noahalvandi.dbbserver.repository;
 
 import com.noahalvandi.dbbserver.model.BookCopy;
 import org.aspectj.weaver.ast.And;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Repository
 public interface BookCopyRepository extends JpaRepository<BookCopy, UUID> {
 
     @Query("""
@@ -49,4 +53,9 @@ public interface BookCopyRepository extends JpaRepository<BookCopy, UUID> {
         LIMIT 1
     """)
     public Optional<BookCopy> findFirstAvailableBookCopy(@Param("bookId") UUID bookId);
+
+
+    @Query("SELECT bc FROM BookCopy bc WHERE bc.book.bookId = :bookId")
+    Page<BookCopy> findBookCopiesByBookId(@Param("bookId") UUID bookId, Pageable pageable);
+
 }

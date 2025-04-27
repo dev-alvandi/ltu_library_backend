@@ -4,10 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.noahalvandi.dbbserver.configuration.JwtProvider;
 import com.noahalvandi.dbbserver.exception.UserException;
-import com.noahalvandi.dbbserver.model.User;
+import com.noahalvandi.dbbserver.model.user.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -84,5 +83,16 @@ public class UserServiceImplementation implements UserService {
             throw new UserException("No user with the email, \"%s\", found".formatted(email));
         }
         return user;
+    }
+
+    @Override
+    public boolean isAdminOrLibrarian(User user) {
+        return user.getUserType() == User.UserType.ADMIN || user.getUserType() == User.UserType.LIBRARIAN;
+    }
+
+
+    @Override
+    public boolean isAdmin(User user) {
+        return user.getUserType() == User.UserType.ADMIN;
     }
 }

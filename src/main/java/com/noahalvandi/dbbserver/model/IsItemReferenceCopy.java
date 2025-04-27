@@ -4,21 +4,21 @@ import lombok.Getter;
 
 @Getter
 public enum IsItemReferenceCopy {
-    TRUE(1),
-    FALSE(0);
+    TRUE(true),
+    FALSE(false);
 
-    private final int code;
+    private final boolean value;
 
-    IsItemReferenceCopy(int code) {
-        this.code = code;
+    IsItemReferenceCopy(boolean value) {
+        this.value = value;
     }
 
-    public static IsItemReferenceCopy fromCode(int code) {
+    public static IsItemReferenceCopy fromValue(boolean value) {
         for (IsItemReferenceCopy type : IsItemReferenceCopy.values()) {
-            if (type.getCode() == code) {
+            if (type.isValue() == value) {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Invalid code for IsReferenceCopy: " + code);
+        throw new IllegalArgumentException("Invalid value for IsItemReferenceCopy: " + value);
     }
 }
