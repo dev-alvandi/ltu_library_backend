@@ -16,7 +16,6 @@ import com.noahalvandi.dbbserver.service.PasswordResetService;
 import com.noahalvandi.dbbserver.service.UserService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -37,26 +36,29 @@ import java.util.UUID;
 @RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private JwtProvider jwtProvider;
+    private final JwtProvider jwtProvider;
 
-    @Autowired
-    private CustomUserDetailsServiceImplementation customUserDetails;
+    private final CustomUserDetailsServiceImplementation customUserDetails;
 
-    @Autowired
-    private PasswordResetService passwordResetService;
+    private final PasswordResetService passwordResetService;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider, CustomUserDetailsServiceImplementation customUserDetails, PasswordResetService passwordResetService, AuthenticationManager authenticationManager, UserService userService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtProvider = jwtProvider;
+        this.customUserDetails = customUserDetails;
+        this.passwordResetService = passwordResetService;
+        this.authenticationManager = authenticationManager;
+        this.userService = userService;
+    }
 
     @GetMapping("/debug/users")
     public List<User> getAllUsers() {
@@ -167,6 +169,8 @@ public class AuthController {
 
     @GetMapping("/is-jwt-valid")
     public ResponseEntity<UserResponse> isJwtValid(@RequestHeader("Authorization") String jwtToken) throws UserException {
+
+        System.out.println("jwtToken: " + jwtToken);
 
         User user = userService.findUserProfileByJwt(jwtToken);
 

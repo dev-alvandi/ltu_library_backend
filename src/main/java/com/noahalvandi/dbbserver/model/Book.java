@@ -49,8 +49,8 @@ public class Book {
     @Column(nullable = false)
     private BookType bookType;
 
-//    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<BookCopy> bookCopies = new ArrayList<>();
+    @OneToMany(mappedBy = "book", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<BookCopy> bookCopies = new ArrayList<>();
 //
 //    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
 //    private List<Reservation> reservations = new ArrayList<>();

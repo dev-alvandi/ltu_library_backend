@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -21,6 +22,8 @@ public interface ResourceService {
     public Page<BookResponse> getAllBooks(Pageable pageable);
 
     public Map<String, Long> getAllLanguagesAndTheirCounts();
+
+    public List<String> getAllLanguages();
 
     public BooksPublishedYearRange getPublishedYearRange();
 
@@ -40,6 +43,12 @@ public interface ResourceService {
 
     public Page<BookCopyResponse> getBookCopiesByBookId(UUID bookId, Pageable pageable);
 
-    BookCopyResponse createBookCopy(UUID bookId, BookCopyRequest request) throws Exception;
+    public BookCopyResponse createBookCopy(UUID bookId, BookCopyRequest request) throws Exception;
+
+    public void deleteBookAndCopies(UUID bookId);
+
+    public void deleteBookCopyByBookCopyId(UUID bookCopyId);
+
+    public BookCopyResponse updateBookCopy(UUID bookCopyId, BookCopyRequest request) throws Exception;
 
 }

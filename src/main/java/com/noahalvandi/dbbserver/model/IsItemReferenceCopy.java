@@ -4,9 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum IsItemReferenceCopy {
-    TRUE(true),
-    FALSE(false);
-
+    FALSE(false),
+    TRUE(true);
     private final boolean value;
 
     IsItemReferenceCopy(boolean value) {

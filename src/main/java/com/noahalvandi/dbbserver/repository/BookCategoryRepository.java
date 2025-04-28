@@ -1,7 +1,6 @@
 package com.noahalvandi.dbbserver.repository;
 
 import com.noahalvandi.dbbserver.dto.projection.BookCategoryCount;
-import com.noahalvandi.dbbserver.dto.projection.LanguageBookCount;
 import com.noahalvandi.dbbserver.model.BookCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -28,4 +27,7 @@ public interface BookCategoryRepository extends JpaRepository<BookCategory, UUID
     boolean existsBySubjectIgnoreCase(String category);
 
     Optional<BookCategory> findBySubjectIgnoreCase(String subject);
+
+    @Query("SELECT bc.subject FROM BookCategory bc")
+    List<String> findAllBookCategorySubjects();
 }

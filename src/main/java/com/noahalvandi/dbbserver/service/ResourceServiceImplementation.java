@@ -1,8 +1,9 @@
 package com.noahalvandi.dbbserver.service;
 
+import com.noahalvandi.dbbserver.dto.HasImageUrl;
 import com.noahalvandi.dbbserver.dto.projection.BooksPublishedYearRange;
 import com.noahalvandi.dbbserver.dto.projection.FilterCriteria;
-import com.noahalvandi.dbbserver.dto.projection.LanguageBookCount;
+import com.noahalvandi.dbbserver.dto.projection.BookLanguageCount;
 import com.noahalvandi.dbbserver.dto.request.BookCopyRequest;
 import com.noahalvandi.dbbserver.dto.request.BookRequest;
 import com.noahalvandi.dbbserver.dto.request.mapper.BookRequestMapper;
@@ -17,6 +18,7 @@ import com.noahalvandi.dbbserver.model.user.User;
 import com.noahalvandi.dbbserver.repository.*;
 import com.noahalvandi.dbbserver.util.BarcodeUtil;
 import com.noahalvandi.dbbserver.util.GlobalConstants;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -66,19 +68,10 @@ public class ResourceServiceImplementation implements ResourceService {
 
     @Override
     public Page<BookResponse> getAllBooks(Pageable pageable) {
-
-        Page<Book> books = bookRepository.findAll(pageable);
-
+        Page<Book> books = bookRepository.findAllAvailableBooksToBorrow(pageable);
         Page<BookResponse> pageBookDtos = books.map(BookResponseMapper::toDto);
 
-        pageBookDtos.getContent().forEach(bookResponse -> {
-            System.out.println(bookResponse.getImageUrl());
-            if (bookResponse.getImageUrl() != null) {
-                String presignedUrl = s3Service.generatePresignedUrl(bookResponse.getImageUrl(), 5); // 5 minutes
-                bookResponse.setImageUrl(presignedUrl);
-            }
-
-        });
+        injectS3ImageUrlIntoDto(pageBookDtos); // <--- here
 
         addingAvailableBookCopiesAndNumberOfNonReferenceCopiesToBookResponse(pageBookDtos);
 
@@ -87,9 +80,14 @@ public class ResourceServiceImplementation implements ResourceService {
 
     @Override
     public Map<String, Long> getAllLanguagesAndTheirCounts() {
-        List<LanguageBookCount> counts = bookRepository.getAllLanguagesAndTheirCounts();
+        List<BookLanguageCount> counts = bookRepository.getAllLanguagesAndTheirCounts();
         return counts.stream()
-                .collect(Collectors.toMap(LanguageBookCount::getLanguage, LanguageBookCount::getCount));
+                .collect(Collectors.toMap(BookLanguageCount::getLanguage, BookLanguageCount::getCount));
+    }
+
+    @Override
+    public List<String> getAllLanguages() {
+        return bookRepository.getAllLanguages();
     }
 
     @Override
@@ -103,7 +101,6 @@ public class ResourceServiceImplementation implements ResourceService {
         List<String> categories = filterCriteria.getCategories();
         List<String> languages = filterCriteria.getLanguages();
 
-        // Convert empty lists to null to match query logic
         if (categories != null && categories.isEmpty()) categories = null;
         if (languages != null && languages.isEmpty()) languages = null;
 
@@ -116,15 +113,13 @@ public class ResourceServiceImplementation implements ResourceService {
                 pageable
         );
 
-        System.out.println(books.toString());
-
         Page<BookResponse> bookResponses = books.map(BookResponseMapper::toDto);
 
-        // Enrich with copy counts
-        Page<BookResponse> modifiedBookResponse = addingAvailableBookCopiesAndNumberOfNonReferenceCopiesToBookResponse(bookResponses);
+        injectS3ImageUrlIntoDto(bookResponses);
 
-        return modifiedBookResponse;
+        return addingAvailableBookCopiesAndNumberOfNonReferenceCopiesToBookResponse(bookResponses);
     }
+
 
     @Override
     public BookSuggestionsResponse getSuggestions(String query) {
@@ -151,11 +146,11 @@ public class ResourceServiceImplementation implements ResourceService {
                 pageable
         ).map(BookResponseMapper::toDto);
 
-        // Enrich with copy counts
-        Page<BookResponse> modifiedBookResponse = addingAvailableBookCopiesAndNumberOfNonReferenceCopiesToBookResponse(bookResponses);
+        injectS3ImageUrlIntoDto(bookResponses);
 
-        return modifiedBookResponse;
+        return addingAvailableBookCopiesAndNumberOfNonReferenceCopiesToBookResponse(bookResponses);
     }
+
 
     private Page<BookResponse> addingAvailableBookCopiesAndNumberOfNonReferenceCopiesToBookResponse(Page<BookResponse> bookResponses) {
         bookResponses.getContent().forEach(bookResponse -> {
@@ -361,9 +356,6 @@ public class ResourceServiceImplementation implements ResourceService {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> ResourceException.notFound("Book not found"));
 
-        System.out.println("Found Book " + book.toString());
-        System.out.println("BookCopyRequest " + request.toString());
-
         BookCopy newCopy = new BookCopy();
         newCopy.setBook(book);
         newCopy.setPhysicalLocation(request.getPhysicalLocation());
@@ -387,6 +379,92 @@ public class ResourceServiceImplementation implements ResourceService {
 
         return BookCopyResponseMapper.toDto(savedCopy);
     }
+
+    @Transactional
+    @Override
+    public void deleteBookAndCopies(UUID bookId) {
+        // Find the Book first
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> ResourceException.notFound("Book not found"));
+
+        // Delete Book Image from S3 if exists
+        if (book.getImage_url() != null && !book.getImage_url().isBlank()) {
+            s3Service.deleteFile(book.getImage_url());
+        }
+
+        // Fetch all BookCopies linked to the Book
+        List<BookCopy> bookCopies = bookCopyRepository.findAllByBookBookId(bookId);
+
+        // Delete each barcode image from S3
+        for (BookCopy copy : bookCopies) {
+            if (copy.getBarcode() != null && !copy.getBarcode().isBlank()) {
+                String barcodeKey = String.format(
+                        "books/%s/barcodes/%s/%s.png",
+                        book.getImage_url().split("/")[1], // extract the book UUID from image URL
+                        copy.getBookCopyId(),
+                        copy.getBarcode()
+                );
+                s3Service.deleteFile(barcodeKey);
+            }
+        }
+
+        // Delete BookCopies from DB
+        bookCopyRepository.deleteBookCopiesByBookId(bookId);
+
+        // Delete the Book itself
+        bookRepository.deleteByBookId(bookId);
+    }
+
+
+    @Override
+    @Transactional
+    public void deleteBookCopyByBookCopyId(UUID bookCopyId) {
+        // Find the BookCopy first
+        BookCopy bookCopy = bookCopyRepository.findById(bookCopyId)
+                .orElseThrow(() -> ResourceException.notFound("BookCopy not found"));
+
+        // Build the S3 barcode key
+        String barcodeKey = String.format(
+                "books/%s/barcodes/%s/%s.png",
+                bookCopy.getBook().getImage_url().split("/")[1],
+                bookCopy.getBookCopyId(),
+                bookCopy.getBarcode()
+        );
+
+        // Delete the barcode from S3
+        s3Service.deleteFile(barcodeKey);
+
+        // Delete the BookCopy from the database
+        bookCopyRepository.deleteById(bookCopyId);
+    }
+
+    @Override
+    @Transactional
+    public BookCopyResponse updateBookCopy(UUID bookCopyId, BookCopyRequest request) throws Exception {
+        // Fetch the BookCopy
+        BookCopy bookCopy = bookCopyRepository.findById(bookCopyId)
+                .orElseThrow(() -> ResourceException.notFound("Book copy not found"));
+
+        // Update fields
+        if (request.getStatus() != null) {
+            bookCopy.setStatus(ItemStatus.valueOf(request.getStatus()));
+        }
+
+        bookCopy.setIsReferenceCopy(
+                request.isItemReferenceCopy() ? IsItemReferenceCopy.TRUE : IsItemReferenceCopy.FALSE
+        );
+
+        if (request.getPhysicalLocation() != null && !request.getPhysicalLocation().isBlank()) {
+            bookCopy.setPhysicalLocation(request.getPhysicalLocation());
+        }
+
+        // Save the updated BookCopy
+        BookCopy updatedCopy = bookCopyRepository.save(bookCopy);
+
+        // Map and return the response
+        return BookCopyResponseMapper.toDto(updatedCopy);
+    }
+
 
     private String uploadBookImage(UUID bookId, MultipartFile file) throws IOException {
 
@@ -416,6 +494,17 @@ public class ResourceServiceImplementation implements ResourceService {
                 bookCopy.getBarcode()
         );
         return s3Service.generatePresignedUrl(barcodeKey, expirationInMinutes);
+    }
+
+
+    private <T extends HasImageUrl> Page<T> injectS3ImageUrlIntoDto(Page<T> page) {
+        page.getContent().forEach(item -> {
+            if (item.getImageUrl() != null) {
+                String presignedUrl = s3Service.generatePresignedUrl(item.getImageUrl(), 5); // 5 min
+                item.setImageUrl(presignedUrl);
+            }
+        });
+        return page;
     }
 
 }

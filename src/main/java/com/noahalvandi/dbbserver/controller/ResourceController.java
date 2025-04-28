@@ -1,5 +1,6 @@
 package com.noahalvandi.dbbserver.controller;
 
+import com.noahalvandi.dbbserver.dto.projection.BookLanguagesCategories;
 import com.noahalvandi.dbbserver.dto.projection.BooksPublishedYearRange;
 import com.noahalvandi.dbbserver.dto.projection.FilterCriteria;
 import com.noahalvandi.dbbserver.dto.request.BookCopyRequest;
@@ -10,6 +11,7 @@ import com.noahalvandi.dbbserver.dto.response.BookSuggestionsResponse;
 import com.noahalvandi.dbbserver.dto.response.mapper.BookResponseMapper;
 import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.Book;
+import com.noahalvandi.dbbserver.model.BookCategory;
 import com.noahalvandi.dbbserver.model.BookCopy;
 import com.noahalvandi.dbbserver.model.user.User;
 import com.noahalvandi.dbbserver.repository.BookCopyRepository;
@@ -63,7 +65,7 @@ public class ResourceController {
         return new ResponseEntity<>(books, HttpStatus.OK);
     }
 
-    @GetMapping("/books-categories")
+    @GetMapping("/books-categories-and-counts")
     public ResponseEntity<Map<String, Long>> allBooksCategories() {
 
         Map<String, Long> bookCategories = bookCategoryService.getAllBooksCategoriesAndTheirCounts();
@@ -71,7 +73,21 @@ public class ResourceController {
         return new ResponseEntity<>(bookCategories, HttpStatus.OK);
     }
 
-    @GetMapping("/books-languages")
+    @GetMapping("/books-categories-and-languages")
+    public ResponseEntity<BookLanguagesCategories> allBooks() {
+
+        List<String> bookCategories = bookCategoryService.getAllBookCategories();
+        List<String> bookLanguages = resourceService.getAllLanguages();
+
+        BookLanguagesCategories blc = new BookLanguagesCategories();
+
+        blc.setCategories(bookCategories);
+        blc.setLanguages(bookLanguages);
+
+        return new ResponseEntity<>(blc, HttpStatus.OK);
+    }
+
+    @GetMapping("/books-languages-and-counts")
     public ResponseEntity<Map<String, Long>> allBooksLanguages() {
 
         Map<String, Long> languagesCounts = resourceService.getAllLanguagesAndTheirCounts();
@@ -175,6 +191,23 @@ public class ResourceController {
         return ResponseEntity.ok(fetchedBook);
     }
 
+    @DeleteMapping("/book/{bookId}")
+    public ResponseEntity<String> deleteBook(
+            @PathVariable UUID bookId,
+            @RequestHeader("Authorization") String jwt
+    ) throws UserException {
+
+        User user = userService.findUserProfileByJwt(jwt);
+
+        if (!userService.isAdminOrLibrarian(user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        resourceService.deleteBookAndCopies(bookId);
+
+        return new ResponseEntity<>("Book deleted", HttpStatus.NO_CONTENT);
+    }
+
     @GetMapping("/book/{bookId}/book-copies")
     public ResponseEntity<Page<BookCopyResponse>> getBookCopies(
                 @PathVariable UUID bookId,
@@ -211,6 +244,23 @@ public class ResourceController {
 
 
         return new ResponseEntity<>(createdCopy, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/book-copy/{bookCopyId}")
+    public ResponseEntity<String> deleteBookCopy(
+            @PathVariable UUID bookCopyId,
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+
+        User user = userService.findUserProfileByJwt(jwt);
+
+        if (!userService.isAdminOrLibrarian(user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        resourceService.deleteBookCopyByBookCopyId(bookCopyId);
+
+        return new ResponseEntity<>("Book Copy deleted", HttpStatus.NO_CONTENT);
     }
 
     @PostMapping(value = "/book/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -270,4 +320,22 @@ public class ResourceController {
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
+    @PutMapping(value = "/book-copy/{bookCopyId}/update")
+    public ResponseEntity<BookCopyResponse> updateBookCopy(
+            @PathVariable UUID bookCopyId,
+            @RequestBody BookCopyRequest request,
+            @RequestHeader("Authorization") String jwt) throws Exception {
+
+        System.out.println("Request " + request);
+
+        User user = userService.findUserProfileByJwt(jwt);
+
+        if (!userService.isAdminOrLibrarian(user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        BookCopyResponse bookCopyResponse = resourceService.updateBookCopy(bookCopyId, request);
+
+        return new ResponseEntity<>(bookCopyResponse, HttpStatus.CREATED);
+    }
 }

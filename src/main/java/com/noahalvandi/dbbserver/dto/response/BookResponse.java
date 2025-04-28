@@ -1,5 +1,6 @@
 package com.noahalvandi.dbbserver.dto.response;
 
+import com.noahalvandi.dbbserver.dto.HasImageUrl;
 import com.noahalvandi.dbbserver.model.Book;
 import com.noahalvandi.dbbserver.model.BookCategory;
 import lombok.Data;
@@ -7,7 +8,7 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class BookResponse {
+public class BookResponse implements HasImageUrl {
 
     private UUID bookId;
     private String title;

@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class LanguageBookCount {
+public class BookLanguageCount {
 
     private String language;
     private long count;
