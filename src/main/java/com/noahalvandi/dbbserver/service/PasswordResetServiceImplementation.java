@@ -2,12 +2,13 @@ package com.noahalvandi.dbbserver.service;
 
 import com.noahalvandi.dbbserver.model.user.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
+import com.noahalvandi.dbbserver.util.EmailTemplates;
 import com.noahalvandi.dbbserver.util.GlobalConstants;
 import com.noahalvandi.dbbserver.util.PasswordResetToken;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -20,17 +21,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class PasswordResetServiceImplementation implements PasswordResetService {
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private JavaMailSender mailSender;
+    private final UserRepository userRepository;
+    private final JavaMailSender mailSender;
 
     private final Map<String, PasswordResetToken> resetTokens = new ConcurrentHashMap<>();
-    @Autowired
-    private GlobalConstants globalConstants;
 
 
     @Override
@@ -77,54 +74,10 @@ public class PasswordResetServiceImplementation implements PasswordResetService 
         helper.setTo(toEmail);
         helper.setSubject("Reset Your Password");
 
-        String htmlContent = getHtmlTemplate(resetLink);
+        String htmlContent = EmailTemplates.getHtmlTemplate(resetLink);
         helper.setText(htmlContent, true); // true = isHtml
 
         mailSender.send(mimeMessage);
-    }
-
-    private String getHtmlTemplate(String resetLink) {
-        return """
-            <!DOCTYPE html>
-            <html>
-                <head>
-                  <style>
-                    .container {
-                      font-family: Arial, sans-serif;
-                      background-color: #f9f9f9;
-                      padding: 30px;
-                      border-radius: 10px;
-                      max-width: 500px;
-                      margin: auto;
-                      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-                    }
-                    .btn {
-                      display: inline-block;
-                      padding: 10px 20px;
-                      margin-top: 20px;
-                      background-color: #0F427E;
-                      color: white;
-                      text-decoration: none;
-                      border-radius: 5px;
-                    }
-                    .footer {
-                      font-size: 12px;
-                      color: #999;
-                      margin-top: 30px;
-                    }
-                  </style>
-                </head>
-                <body>
-                  <div class="container">
-                    <h2>Password Reset Request</h2>
-                    <p>You requested to reset your password. Click the button below to continue:</p>
-                    <a href="%s" class="btn">Reset Password</a>
-                    <p>If you didn't request this, you can ignore this email.</p>
-                    <div class="footer">This link will expire in %d minutes.</div>
-                  </div>
-                </body>
-            </html>
-        """.formatted(resetLink, GlobalConstants.MINUTES_TO_EXPIRE_PASSWORD_TOKEN);
     }
 
     // Only for test access, you can protect these if needed

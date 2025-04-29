@@ -19,5 +19,6 @@ public class BookCategory {
     private String subject;
 
 //    @OneToMany(mappedBy = "bookCategory")
+//    @ToString.Exclude
 //    private List<Book> books = new ArrayList<>();
 }

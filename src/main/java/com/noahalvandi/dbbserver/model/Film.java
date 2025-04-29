@@ -2,6 +2,7 @@ package com.noahalvandi.dbbserver.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -34,15 +35,17 @@ public class Film {
     @Column(nullable = false, length = 100)
     private String language;
 
-    @Column(nullable = false, length = 1000, unique = true)
-    private String image_url;
+    @Column(name = "image_url", nullable = false, length = 1000, unique = true)
+    private String imageUrl;
 
     @ManyToOne()
     @JoinColumn(name = "film_category_id", nullable = false)
+    @ToString.Exclude
     private FilmCategory filmCategory;
 
-//    @OneToMany(mappedBy = "film", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<FilmCopy> filmCopies = new ArrayList<>();
+    @OneToMany(mappedBy = "film", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<FilmCopy> filmCopies = new ArrayList<>();
 //
 //    @OneToMany(mappedBy = "film", cascade = CascadeType.ALL, orphanRemoval = true)
 //    private List<Reservation> reservations = new ArrayList<>();

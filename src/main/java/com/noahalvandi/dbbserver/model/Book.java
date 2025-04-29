@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.time.Year;
 import java.util.ArrayList;
@@ -38,11 +39,12 @@ public class Book {
     @Column(nullable = false, length = 100)
     private String language;
 
-    @Column(length = 1000, unique = true)
-    private String image_url;
+    @Column(name = "image_url", length = 1000, unique = true)
+    private String imageUrl;
 
     @ManyToOne()
     @JoinColumn(name = "book_category_id")
+    @ToString.Exclude
     private BookCategory bookCategory;
 
     @Enumerated(EnumType.ORDINAL)
@@ -50,6 +52,7 @@ public class Book {
     private BookType bookType;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @ToString.Exclude
     private List<BookCopy> bookCopies = new ArrayList<>();
 //
 //    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)

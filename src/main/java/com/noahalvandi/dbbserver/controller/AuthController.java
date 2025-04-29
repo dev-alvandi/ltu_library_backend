@@ -15,6 +15,7 @@ import com.noahalvandi.dbbserver.service.CustomUserDetailsServiceImplementation;
 import com.noahalvandi.dbbserver.service.PasswordResetService;
 import com.noahalvandi.dbbserver.service.UserService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,31 +35,16 @@ import java.util.UUID;
 @Slf4j
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final UserRepository userRepository;
-
     private final PasswordEncoder passwordEncoder;
-
     private final JwtProvider jwtProvider;
-
     private final CustomUserDetailsServiceImplementation customUserDetails;
-
     private final PasswordResetService passwordResetService;
-
     private final AuthenticationManager authenticationManager;
-
     private final UserService userService;
-
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider, CustomUserDetailsServiceImplementation customUserDetails, PasswordResetService passwordResetService, AuthenticationManager authenticationManager, UserService userService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtProvider = jwtProvider;
-        this.customUserDetails = customUserDetails;
-        this.passwordResetService = passwordResetService;
-        this.authenticationManager = authenticationManager;
-        this.userService = userService;
-    }
 
     @GetMapping("/debug/users")
     public List<User> getAllUsers() {
@@ -170,14 +156,26 @@ public class AuthController {
     @GetMapping("/is-jwt-valid")
     public ResponseEntity<UserResponse> isJwtValid(@RequestHeader("Authorization") String jwtToken) throws UserException {
 
-        System.out.println("jwtToken: " + jwtToken);
-
         User user = userService.findUserProfileByJwt(jwtToken);
 
         UserResponse userResponse = UserResponseMapper.toDto(user);
 
         return new ResponseEntity<>(userResponse, HttpStatus.OK);
     }
+
+    @DeleteMapping("/delete-account")
+    public ResponseEntity<String> deleteAccount(@RequestHeader("Authorization") String jwt) throws UserException {
+        User user = userService.findUserProfileByJwt(jwt);
+
+        if (userService.isAdminOrLibrarian(user)) { // Admin and Librarians may not remove their accounts
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        userService.deleteUserAccount(user);
+
+        return ResponseEntity.ok("Account deleted successfully.");
+    }
+
 
     private Authentication authenticate(String username, String password) {
         UserDetails userDetails = customUserDetails.loadUserByUsername(username);

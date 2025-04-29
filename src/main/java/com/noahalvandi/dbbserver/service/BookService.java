@@ -7,7 +7,6 @@ import com.noahalvandi.dbbserver.dto.request.BookRequest;
 import com.noahalvandi.dbbserver.dto.response.BookCopyResponse;
 import com.noahalvandi.dbbserver.dto.response.BookResponse;
 import com.noahalvandi.dbbserver.dto.response.BookSuggestionsResponse;
-import com.noahalvandi.dbbserver.model.BookCopy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public interface ResourceService {
+public interface BookService {
 
     public Page<BookResponse> getAllBooks(Pageable pageable);
 
@@ -33,7 +32,7 @@ public interface ResourceService {
 
     public Page<BookResponse> getSearchedBooks(String query, Pageable pageable, FilterCriteria FilterCriteria);
 
-    public BookCopy borrowBookCopy(UUID userId, UUID bookId);
+//    public BookCopy borrowBookCopy(UUID userId, UUID bookId);
 
     public BookResponse updateBook(BookRequest bookRequest, MultipartFile image) throws IOException;
 

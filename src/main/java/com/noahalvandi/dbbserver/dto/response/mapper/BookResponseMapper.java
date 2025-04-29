@@ -18,7 +18,7 @@ public class BookResponseMapper {
         dto.setPublisher(book.getPublisher());
         dto.setPublishedYear(book.getPublishedYear());
         dto.setLanguage(book.getLanguage());
-        dto.setImageUrl(book.getImage_url());
+        dto.setImageUrl(book.getImageUrl());
         dto.setBookCategory(book.getBookCategory());
         dto.setBookType(book.getBookType());
 

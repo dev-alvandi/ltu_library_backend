@@ -104,11 +104,11 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
             (:isAvailable IS NULL OR
                 (
                     :isAvailable = TRUE AND EXISTS (
-                        SELECT bc FROM BookCopy bc WHERE bc.book = b AND bc.status = 0
+                        SELECT bc FROM BookCopy bc WHERE bc.book = b AND bc.status = 0 AND bc.isReferenceCopy = 0
                     )
                 ) OR (
                     :isAvailable = FALSE AND NOT EXISTS (
-                        SELECT bc FROM BookCopy bc WHERE bc.book = b AND bc.status = 0
+                        SELECT bc FROM BookCopy bc WHERE bc.book = b AND bc.status = 0 AND bc.isReferenceCopy = 0
                     )
                 )
             )

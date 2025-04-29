@@ -2,6 +2,7 @@ package com.noahalvandi.dbbserver.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.UUID;
 
@@ -21,6 +22,7 @@ public class BookCopy {
 
     @ManyToOne
     @JoinColumn(name = "book_id", nullable = false)
+    @ToString.Exclude
     private Book book;
 
     @Enumerated(EnumType.ORDINAL)

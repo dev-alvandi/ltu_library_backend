@@ -14,57 +14,29 @@ import com.noahalvandi.dbbserver.dto.response.mapper.BookCopyResponseMapper;
 import com.noahalvandi.dbbserver.dto.response.mapper.BookResponseMapper;
 import com.noahalvandi.dbbserver.exception.ResourceException;
 import com.noahalvandi.dbbserver.model.*;
-import com.noahalvandi.dbbserver.model.user.User;
 import com.noahalvandi.dbbserver.repository.*;
 import com.noahalvandi.dbbserver.util.BarcodeUtil;
-import com.noahalvandi.dbbserver.util.GlobalConstants;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 
 @Service
-public class ResourceServiceImplementation implements ResourceService {
+@RequiredArgsConstructor
+public class BookServiceImplementation implements BookService {
 
 
     private final BookRepository bookRepository;
-
     private final BookCopyRepository bookCopyRepository;
-
-    private final UserRepository userRepository;
-
-    private final LoanRepository loanRepository;
-
-    private final LoanItemRepository loanItemRepository;
-
     private final BookCategoryRepository bookCategoryRepository;
-
     private final S3Service s3Service;
-
-    public ResourceServiceImplementation(BookRepository bookRepository,
-                                         BookCopyRepository bookCopyRepository,
-                                         UserRepository userRepository,
-                                         LoanRepository loanRepository,
-                                         LoanItemRepository loanItemRepository,
-                                         BookCategoryRepository bookCategoryRepository,
-                                         S3Service s3Service) {
-        this.bookRepository = bookRepository;
-        this.bookCopyRepository = bookCopyRepository;
-        this.userRepository = userRepository;
-        this.loanRepository = loanRepository;
-        this.loanItemRepository = loanItemRepository;
-        this.bookCategoryRepository = bookCategoryRepository;
-        this.s3Service = s3Service;
-    }
 
     @Override
     public Page<BookResponse> getAllBooks(Pageable pageable) {
@@ -166,47 +138,6 @@ public class ResourceServiceImplementation implements ResourceService {
     }
 
     @Override
-    public BookCopy borrowBookCopy(UUID userId, UUID bookId) {
-        // Check if the user already borrowed a book
-        List<LoanItem> activeLoans = loanItemRepository.findActiveBookLoanByUserAndBook(userId, bookId);
-
-        if (!activeLoans.isEmpty()) {
-            throw ResourceException.conflict("User already borrowed the book.");
-        }
-
-        BookCopy copy = bookCopyRepository.findFirstAvailableBookCopy(bookId)
-                .orElseThrow(() -> new ResourceException(HttpStatus.NOT_FOUND, "You may not borrow the same item twice at a time!"));
-
-        User foundUser = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
-        // Determine loan period
-        int loanDays = copy.getBook().getBookType() == Book.BookType.COURSE_LITERATURE ?
-                GlobalConstants.LOAN_DAYS_FOR_COURSE_LITERATURE_BOOKS :
-                GlobalConstants.LOAN_DAYS_FOR_NON_COURSE_LITERATURE_BOOKS;
-
-        // Create Loan
-        Loan loan = new Loan();
-        loan.setUser(foundUser);
-        loan.setLoanDate(LocalDateTime.now());
-        loanRepository.save(loan);
-
-        // Create LoanItem
-        LoanItem loanItem = new LoanItem();
-        loanItem.setLoan(loan);
-        loanItem.setBookCopy(copy);
-        loanItem.setDueDate(LocalDateTime.now().plusDays(loanDays));
-        loanItemRepository.save(loanItem);
-
-        // Update BookCopy status
-        copy.setStatus(ItemStatus.BORROWED); // or status = 2
-        bookCopyRepository.save(copy);
-
-        return copy;
-    }
-
-
-
-    @Override
     public BookResponse createBook(BookRequest bookRequest, MultipartFile image) throws Exception {
 
         // 1. Handle BookCategory
@@ -229,7 +160,7 @@ public class ResourceServiceImplementation implements ResourceService {
 
 
         book.setBookCategory(bookCategory);
-        book.setImage_url(imageUrl);
+        book.setImageUrl(imageUrl);
 
         Book savedBook = bookRepository.save(book);
 
@@ -277,7 +208,7 @@ public class ResourceServiceImplementation implements ResourceService {
         // Handle image upload if a new image is provided
         if (image != null && !image.isEmpty()) {
             // Delete the old image from S3 if it exists
-            String existingImageUrl = book.getImage_url();
+            String existingImageUrl = book.getImageUrl();
             if (existingImageUrl != null && !existingImageUrl.isBlank()) {
                 // Extract key from full URL: everything after the bucket domain
                 String key = existingImageUrl.substring(existingImageUrl.indexOf("books/"));
@@ -286,7 +217,7 @@ public class ResourceServiceImplementation implements ResourceService {
 
             // Upload new image
             String newImageUrl = uploadBookImage(book.getBookId(), image);
-            book.setImage_url(newImageUrl);
+            book.setImageUrl(newImageUrl);
         }
 
 
@@ -388,8 +319,8 @@ public class ResourceServiceImplementation implements ResourceService {
                 .orElseThrow(() -> ResourceException.notFound("Book not found"));
 
         // Delete Book Image from S3 if exists
-        if (book.getImage_url() != null && !book.getImage_url().isBlank()) {
-            s3Service.deleteFile(book.getImage_url());
+        if (book.getImageUrl() != null && !book.getImageUrl().isBlank()) {
+            s3Service.deleteFile(book.getImageUrl());
         }
 
         // Fetch all BookCopies linked to the Book
@@ -400,7 +331,7 @@ public class ResourceServiceImplementation implements ResourceService {
             if (copy.getBarcode() != null && !copy.getBarcode().isBlank()) {
                 String barcodeKey = String.format(
                         "books/%s/barcodes/%s/%s.png",
-                        book.getImage_url().split("/")[1], // extract the book UUID from image URL
+                        book.getImageUrl().split("/")[1], // extract the book UUID from image URL
                         copy.getBookCopyId(),
                         copy.getBarcode()
                 );
@@ -426,7 +357,7 @@ public class ResourceServiceImplementation implements ResourceService {
         // Build the S3 barcode key
         String barcodeKey = String.format(
                 "books/%s/barcodes/%s/%s.png",
-                bookCopy.getBook().getImage_url().split("/")[1],
+                bookCopy.getBook().getImageUrl().split("/")[1],
                 bookCopy.getBookCopyId(),
                 bookCopy.getBarcode()
         );
@@ -477,7 +408,7 @@ public class ResourceServiceImplementation implements ResourceService {
 //        String sanitizedTitle = book.getTitle().replaceAll("[^a-zA-Z0-9\\-_]", "_"); // safe for S3 key
         String key = String.format(
                 "books/%s/barcodes/%s/%s.png",
-                book.getImage_url().split("/")[1],
+                book.getImageUrl().split("/")[1],
                 bookCopy.getBookCopyId(),
                 bookCopy.getBarcode()
         );
@@ -489,7 +420,7 @@ public class ResourceServiceImplementation implements ResourceService {
     public String generateBarcodePresignedUrl(Book book, BookCopy bookCopy, int expirationInMinutes) {
         String barcodeKey = String.format(
                 "books/%s/barcodes/%s/%s.png",
-                book.getImage_url().split("/")[1],
+                book.getImageUrl().split("/")[1],
                 bookCopy.getBookCopyId(),
                 bookCopy.getBarcode()
         );

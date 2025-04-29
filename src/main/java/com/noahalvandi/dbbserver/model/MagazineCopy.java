@@ -3,6 +3,7 @@ package com.noahalvandi.dbbserver.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.util.UUID;
 
@@ -26,6 +27,7 @@ public class MagazineCopy {
 
     @ManyToOne
     @JoinColumn(name = "magazine_id", nullable = false)
+    @ToString.Exclude
     private Magazine magazine;
 
     @Enumerated(EnumType.ORDINAL)

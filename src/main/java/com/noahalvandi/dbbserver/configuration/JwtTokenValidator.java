@@ -1,5 +1,6 @@
 package com.noahalvandi.dbbserver.configuration;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -25,7 +26,12 @@ import java.util.List;
  */
 public class JwtTokenValidator extends OncePerRequestFilter {
 
-    private int HOUR_TO_MILLISECONDS = 3_600_000;
+    private static final String SECRET_KEY;
+
+    static {
+        Dotenv dotenv = Dotenv.configure().load();
+        SECRET_KEY = dotenv.get("JWT_SECRET_KEY");
+    }
 
     /**
      * Validates the provided JWT in the HTTP request header and sets the authentication in the security context.
@@ -39,13 +45,17 @@ public class JwtTokenValidator extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String jwt = request.getHeader(JwtConstant.JWT_HEADER);
+        String jwt = request.getHeader("Authorization");
 
         if (jwt != null) {
             jwt = jwt.substring(7);
             try {
-                SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
-                Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jwt).getBody();
+                SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+                Claims claims = Jwts.parserBuilder()
+                        .setSigningKey(key)
+                        .build()
+                        .parseClaimsJws(jwt)
+                        .getBody();
 
                 String email = String.valueOf(claims.get("email"));
                 String authorities = String.valueOf(claims.get("authorities"));

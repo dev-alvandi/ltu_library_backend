@@ -2,6 +2,7 @@ package com.noahalvandi.dbbserver.service;
 
 import com.noahalvandi.dbbserver.model.user.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -12,13 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class CustomUserDetailsServiceImplementation implements UserDetailsService {
 
     private final UserRepository userRepository;
-
-    public CustomUserDetailsServiceImplementation(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

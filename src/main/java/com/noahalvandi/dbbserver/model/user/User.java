@@ -1,6 +1,7 @@
 package com.noahalvandi.dbbserver.model.user;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.noahalvandi.dbbserver.model.Reservation;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -9,6 +10,8 @@ import lombok.Data;
 import lombok.Getter;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -66,8 +69,8 @@ public class User {
 //    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
 //    private List<Loan> loans = new ArrayList<>();
 //
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<Reservation> reservations = new ArrayList<>();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Reservation> reservations = new ArrayList<>();
 
     @Getter
     public enum UserType {

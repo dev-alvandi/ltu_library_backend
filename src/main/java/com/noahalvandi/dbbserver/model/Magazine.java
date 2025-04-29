@@ -2,6 +2,7 @@ package com.noahalvandi.dbbserver.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.Date;
 import java.util.UUID;
@@ -26,10 +27,11 @@ public class Magazine {
     @Column(nullable = false, length = 100)
     private String language;
 
-    @Column(nullable = false, length = 1000, unique = true)
-    private String image_url;
+    @Column(name = "image_url", nullable = false, length = 1000, unique = true)
+    private String imageUrl;
 
     @ManyToOne
     @JoinColumn(name = "magazine_category_id")
+    @ToString.Exclude
     private MagazineCategory magazineCategory;
 }

@@ -8,18 +8,13 @@ import com.noahalvandi.dbbserver.dto.request.BookRequest;
 import com.noahalvandi.dbbserver.dto.response.BookCopyResponse;
 import com.noahalvandi.dbbserver.dto.response.BookResponse;
 import com.noahalvandi.dbbserver.dto.response.BookSuggestionsResponse;
-import com.noahalvandi.dbbserver.dto.response.mapper.BookResponseMapper;
 import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.Book;
-import com.noahalvandi.dbbserver.model.BookCategory;
-import com.noahalvandi.dbbserver.model.BookCopy;
 import com.noahalvandi.dbbserver.model.user.User;
-import com.noahalvandi.dbbserver.repository.BookCopyRepository;
-import com.noahalvandi.dbbserver.repository.BookRepository;
 import com.noahalvandi.dbbserver.service.BookCategoryService;
-import com.noahalvandi.dbbserver.service.ResourceService;
+import com.noahalvandi.dbbserver.service.BookService;
 import com.noahalvandi.dbbserver.service.UserService;
-import com.noahalvandi.dbbserver.util.BarcodeUtil;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -29,7 +24,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -39,34 +33,22 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/resources")
-public class ResourceController {
+@RequiredArgsConstructor
+public class BookController {
 
-    private final ResourceService resourceService;
-
+    private final BookService bookService;
     private final BookCategoryService bookCategoryService;
-
     private final UserService userService;
 
-    private final BookRepository bookRepository;
-
-    private final BookCopyRepository bookCopyRepository;
-
-    public ResourceController(ResourceService resourceService, BookCategoryService bookCategoryService, UserService userService, BookRepository bookRepository, BookCopyRepository bookCopyRepository) {
-        this.resourceService = resourceService;
-        this.bookCategoryService = bookCategoryService;
-        this.userService = userService;
-        this.bookRepository = bookRepository;
-        this.bookCopyRepository = bookCopyRepository;
-    }
 
     @GetMapping("/books")
     public ResponseEntity<Page<BookResponse>> allBooks(@PageableDefault(page = 0, size = 9, sort = "title", direction = Sort.Direction.ASC) Pageable pageable) {
-        Page<BookResponse> books = resourceService.getAllBooks(pageable);
+        Page<BookResponse> books = bookService.getAllBooks(pageable);
         return new ResponseEntity<>(books, HttpStatus.OK);
     }
 
     @GetMapping("/books-categories-and-counts")
-    public ResponseEntity<Map<String, Long>> allBooksCategories() {
+    public ResponseEntity<Map<String, Long>> allBooksCategoriesAndCounts() {
 
         Map<String, Long> bookCategories = bookCategoryService.getAllBooksCategoriesAndTheirCounts();
 
@@ -74,10 +56,10 @@ public class ResourceController {
     }
 
     @GetMapping("/books-categories-and-languages")
-    public ResponseEntity<BookLanguagesCategories> allBooks() {
+    public ResponseEntity<BookLanguagesCategories> allBooksCategoriesAndLanguages() {
 
         List<String> bookCategories = bookCategoryService.getAllBookCategories();
-        List<String> bookLanguages = resourceService.getAllLanguages();
+        List<String> bookLanguages = bookService.getAllLanguages();
 
         BookLanguagesCategories blc = new BookLanguagesCategories();
 
@@ -87,10 +69,38 @@ public class ResourceController {
         return new ResponseEntity<>(blc, HttpStatus.OK);
     }
 
-    @GetMapping("/books-languages-and-counts")
-    public ResponseEntity<Map<String, Long>> allBooksLanguages() {
+    @GetMapping("/books-categories")
+    public ResponseEntity<List<String>> allBooksCategories(@RequestHeader("Authorization") String jwt) throws UserException {
 
-        Map<String, Long> languagesCounts = resourceService.getAllLanguagesAndTheirCounts();
+        User user = userService.findUserProfileByJwt(jwt);
+
+        if (!userService.isAdminOrLibrarian(user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        List<String> bookCategories = bookCategoryService.getAllBookCategories();
+
+        return new ResponseEntity<>(bookCategories, HttpStatus.OK);
+    }
+
+    @GetMapping("/books-languages")
+    public ResponseEntity<List<String>> allBooksLanguages(@RequestHeader("Authorization") String jwt) throws UserException {
+
+        User user = userService.findUserProfileByJwt(jwt);
+
+        if (!userService.isAdminOrLibrarian(user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        List<String> bookCategories = bookService.getAllLanguages();
+
+        return new ResponseEntity<>(bookCategories, HttpStatus.OK);
+    }
+
+    @GetMapping("/books-languages-and-counts")
+    public ResponseEntity<Map<String, Long>> allBooksLanguagesAndCounts() {
+
+        Map<String, Long> languagesCounts = bookService.getAllLanguagesAndTheirCounts();
 
         return new ResponseEntity<>(languagesCounts, HttpStatus.OK);
     }
@@ -98,7 +108,7 @@ public class ResourceController {
     @GetMapping("/books-year-range")
     public ResponseEntity<BooksPublishedYearRange> allBooksYearRange() {
 
-        BooksPublishedYearRange booksPublishedYearRange = resourceService.getPublishedYearRange();
+        BooksPublishedYearRange booksPublishedYearRange = bookService.getPublishedYearRange();
 
         return new ResponseEntity<>(booksPublishedYearRange, HttpStatus.OK);
     }
@@ -106,9 +116,9 @@ public class ResourceController {
     @GetMapping("/books-filters")
     public ResponseEntity<?> allBooksFilters() {
 
-        BooksPublishedYearRange yeaRange = resourceService.getPublishedYearRange();
+        BooksPublishedYearRange yeaRange = bookService.getPublishedYearRange();
         Map<String, Long> categories = bookCategoryService.getAllBooksCategoriesAndTheirCounts();
-        Map<String, Long> languages = resourceService.getAllLanguagesAndTheirCounts();
+        Map<String, Long> languages = bookService.getAllLanguagesAndTheirCounts();
 
         Map<String, Object> response = new HashMap<>();
         response.put("publishedYearRange", yeaRange);
@@ -125,20 +135,21 @@ public class ResourceController {
             @RequestParam(required = false) Integer maxYear,
             @RequestParam(required = false) List<String> categories,
             @RequestParam(required = false) List<String> languages,
-            @PageableDefault(page = 0, size = 9, sort = "title", direction = Sort.Direction.ASC) Pageable pageable
-    ) {
+            @PageableDefault(page = 0, size = 9, sort = "title", direction = Sort.Direction.ASC) Pageable pageable) {
 
         FilterCriteria filter = new FilterCriteria(
                 isAvailable, minYear, maxYear, categories, languages
         );
 
-        Page<BookResponse> filteredBooks = resourceService.getFilteredBooks(pageable, filter);
+        Page<BookResponse> filteredBooks = bookService.getFilteredBooks(pageable, filter);
         return new ResponseEntity<>(filteredBooks, HttpStatus.OK);
     }
 
     @GetMapping("/suggested-books")
     public ResponseEntity<BookSuggestionsResponse> getSuggestions(@RequestParam String query) {
-        BookSuggestionsResponse response = resourceService.getSuggestions(query);
+
+        BookSuggestionsResponse response = bookService.getSuggestions(query);
+
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -150,31 +161,19 @@ public class ResourceController {
             @RequestParam(required = false) Integer maxYear,
             @RequestParam(required = false) List<String> categories,
             @RequestParam(required = false) List<String> languages,
-            @PageableDefault(page = 0, size = 9, sort = "title", direction = Sort.Direction.ASC) Pageable pageable
-    ) {
-        System.out.println("Query " + query);
+            @PageableDefault(page = 0, size = 9, sort = "title", direction = Sort.Direction.ASC) Pageable pageable) {
+
         FilterCriteria filters = new FilterCriteria(isAvailable, minYear, maxYear, categories, languages);
-        Page<BookResponse> result = resourceService.getSearchedBooks(query, pageable, filters);
+
+        Page<BookResponse> result = bookService.getSearchedBooks(query, pageable, filters);
+
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
-    @PostMapping("/borrow/{bookId}")
-    public ResponseEntity<BookCopy> borrowBookCopy(@PathVariable UUID bookId, @RequestHeader("Authorization") String jwt) throws UserException {
-
-        User user = userService.findUserProfileByJwt(jwt);
-
-        BookCopy borrowedCopy = resourceService.borrowBookCopy(user.getUserId() ,bookId);
-
-        System.out.println("BorrowedCopy " + borrowedCopy);
-
-        return new ResponseEntity<>(borrowedCopy, HttpStatus.CREATED) ;
-    }
-
-
-
     @GetMapping("/book/{bookId}")
-    public ResponseEntity<BookResponse> getRequestedBook(@PathVariable UUID bookId,
-                                                         @RequestHeader("Authorization") String jwt) throws UserException {
+    public ResponseEntity<BookResponse> getRequestedBook(
+            @PathVariable UUID bookId,
+            @RequestHeader("Authorization") String jwt) throws UserException {
 
         User user = userService.findUserProfileByJwt(jwt);
 
@@ -182,7 +181,7 @@ public class ResourceController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
         }
 
-        BookResponse fetchedBook = resourceService.getRequestedBook(bookId);
+        BookResponse fetchedBook = bookService.getRequestedBook(bookId);
 
         if (fetchedBook == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
@@ -194,8 +193,7 @@ public class ResourceController {
     @DeleteMapping("/book/{bookId}")
     public ResponseEntity<String> deleteBook(
             @PathVariable UUID bookId,
-            @RequestHeader("Authorization") String jwt
-    ) throws UserException {
+            @RequestHeader("Authorization") String jwt) throws UserException {
 
         User user = userService.findUserProfileByJwt(jwt);
 
@@ -203,7 +201,7 @@ public class ResourceController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
         }
 
-        resourceService.deleteBookAndCopies(bookId);
+        bookService.deleteBookAndCopies(bookId);
 
         return new ResponseEntity<>("Book deleted", HttpStatus.NO_CONTENT);
     }
@@ -220,7 +218,7 @@ public class ResourceController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        Page<BookCopyResponse> bookCopies = resourceService.getBookCopiesByBookId(bookId, pageable);
+        Page<BookCopyResponse> bookCopies = bookService.getBookCopiesByBookId(bookId, pageable);
 
         return new ResponseEntity<>(bookCopies, HttpStatus.OK);
     }
@@ -229,10 +227,7 @@ public class ResourceController {
     public ResponseEntity<BookCopyResponse> createBookCopy(
             @PathVariable UUID bookId,
             @RequestBody BookCopyRequest request,
-            @RequestHeader("Authorization") String jwt
-    ) throws Exception {
-
-        System.out.println("Request " + request);
+            @RequestHeader("Authorization") String jwt) throws Exception {
 
         User user = userService.findUserProfileByJwt(jwt);
 
@@ -240,7 +235,7 @@ public class ResourceController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        BookCopyResponse createdCopy = resourceService.createBookCopy(bookId, request);
+        BookCopyResponse createdCopy = bookService.createBookCopy(bookId, request);
 
 
         return new ResponseEntity<>(createdCopy, HttpStatus.CREATED);
@@ -249,8 +244,7 @@ public class ResourceController {
     @DeleteMapping("/book-copy/{bookCopyId}")
     public ResponseEntity<String> deleteBookCopy(
             @PathVariable UUID bookCopyId,
-            @RequestHeader("Authorization") String jwt
-    ) throws Exception {
+            @RequestHeader("Authorization") String jwt) throws Exception {
 
         User user = userService.findUserProfileByJwt(jwt);
 
@@ -258,7 +252,7 @@ public class ResourceController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        resourceService.deleteBookCopyByBookCopyId(bookCopyId);
+        bookService.deleteBookCopyByBookCopyId(bookCopyId);
 
         return new ResponseEntity<>("Book Copy deleted", HttpStatus.NO_CONTENT);
     }
@@ -274,10 +268,7 @@ public class ResourceController {
             @RequestPart("language") String language,
             @RequestPart("category") String category,
             @RequestPart(value = "image", required = false) MultipartFile image,
-            @RequestHeader("Authorization") String jwt
-    ) throws Exception {
-
-        System.out.println("Image: " + (image != null ? image.getOriginalFilename() : "null"));
+            @RequestHeader("Authorization") String jwt) throws Exception {
 
         User user = userService.findUserProfileByJwt(jwt);
         if (!userService.isAdminOrLibrarian(user)) {
@@ -287,7 +278,7 @@ public class ResourceController {
         BookRequest bookRequest = new BookRequest(title, author, publisher, publishedYear,
                 isbn, language, Book.BookType.valueOf(bookType), category);
 
-        BookResponse created = resourceService.createBook(bookRequest, image);
+        BookResponse created = bookService.createBook(bookRequest, image);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
@@ -315,7 +306,7 @@ public class ResourceController {
                 isbn, language, Book.BookType.valueOf(bookType), category);
 
 
-        BookResponse created = resourceService.updateBook(bookRequest, image);
+        BookResponse created = bookService.updateBook(bookRequest, image);
 
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
@@ -326,15 +317,13 @@ public class ResourceController {
             @RequestBody BookCopyRequest request,
             @RequestHeader("Authorization") String jwt) throws Exception {
 
-        System.out.println("Request " + request);
-
         User user = userService.findUserProfileByJwt(jwt);
 
         if (!userService.isAdminOrLibrarian(user)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        BookCopyResponse bookCopyResponse = resourceService.updateBookCopy(bookCopyId, request);
+        BookCopyResponse bookCopyResponse = bookService.updateBookCopy(bookCopyId, request);
 
         return new ResponseEntity<>(bookCopyResponse, HttpStatus.CREATED);
     }

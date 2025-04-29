@@ -2,6 +2,7 @@ package com.noahalvandi.dbbserver.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,7 @@ public class FilmCategory {
     @Column(length = 50, nullable = false)
     private String genre;
 
-//    @OneToMany(mappedBy = "filmCategory", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<Film> films = new ArrayList<>();
+    @OneToMany(mappedBy = "filmCategory", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<Film> films = new ArrayList<>();
 }

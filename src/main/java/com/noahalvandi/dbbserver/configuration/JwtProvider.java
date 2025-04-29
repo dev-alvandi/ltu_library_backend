@@ -1,5 +1,7 @@
 package com.noahalvandi.dbbserver.configuration;
 
+import com.noahalvandi.dbbserver.util.GlobalConstants;
+import io.github.cdimascio.dotenv.Dotenv;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -15,7 +17,15 @@ import java.util.Date;
  */
 @Service
 public class JwtProvider {
-    SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
+
+    private static final String SECRET_KEY;
+
+    static {
+        Dotenv dotenv = Dotenv.configure().load();
+        SECRET_KEY = dotenv.get("JWT_SECRET_KEY");
+    }
+
+    SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 
     /**
      * Generates a JWT for the provided authentication object.
@@ -24,11 +34,10 @@ public class JwtProvider {
      * @return a compact, URL-safe JWT as a {@link String}
      */
     public String generateToken(Authentication auth) {
-        int DAY_TO_MILLISECONDS = 1000 * 60 * 60 * 24;
 
         return Jwts.builder()
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(new Date().getTime() + DAY_TO_MILLISECONDS))
+                .setExpiration(new Date(new Date().getTime() + GlobalConstants.JWT_EXPIRATION_DAY_TO_MILLISECONDS))
                 .claim("email", auth.getName())
                 .signWith(key)
                 .compact();

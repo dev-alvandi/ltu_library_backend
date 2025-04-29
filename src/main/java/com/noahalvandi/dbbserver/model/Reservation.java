@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -28,7 +29,7 @@ public class Reservation {
     private Film film;
 
     @Column(nullable = false)
-    private LocalDateTime reservedAt;
+    private Instant reservedAt;
 
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)

@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import io.github.cdimascio.dotenv.Dotenv;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,16 +14,13 @@ import java.io.IOException;
 import java.util.Date;
 
 @Service
+@RequiredArgsConstructor
 public class S3ServiceImplementation implements S3Service {
 
     Dotenv dotenv = Dotenv.configure().load();
-
-    private final AmazonS3 amazonS3;
     private final String BUCKET_NAME = dotenv.get("AWS_BUCKET_NAME");
 
-    public S3ServiceImplementation(AmazonS3 amazonS3) {
-        this.amazonS3 = amazonS3;
-    }
+    private final AmazonS3 amazonS3;
 
     @Override
     public String uploadFile(String key, MultipartFile file) throws IOException {
