@@ -126,4 +126,50 @@ public class EmailTemplates {
     """.formatted(firstName, bookTitle, loanDate.toString(), dueDate.toString(), dailyOverdueFee);
     }
 
+    public static String getReturnReceiptTemplate(String firstName, String title, LocalDateTime returnedAt, LocalDateTime dueAt, boolean isLate, int fee) {
+        return """
+        <!DOCTYPE html>
+        <html>
+            <head>
+              <style>
+                h2 {
+                  text-transform: capitalize;
+                }
+                .container {
+                  font-family: Arial, sans-serif;
+                  background-color: #f9f9f9;
+                  padding: 30px;
+                  border-radius: 10px;
+                  max-width: 600px;
+                  margin: auto;
+                  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                }
+                .footer {
+                  font-size: 12px;
+                  color: #999;
+                  margin-top: 30px;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h2>Hello, %s!</h2>
+                <p>You have successfully returned the following resource:</p>
+                <p><strong>Title:</strong> %s</p>
+                <p><strong>Returned at:</strong> %s</p>
+                <p><strong>Due date was:</strong> %s</p>
+                %s
+                <div class="footer">Thank you for using the Luleå University Library.</div>
+              </div>
+            </body>
+        </html>
+    """.formatted(
+                firstName,
+                title,
+                returnedAt.toString(),
+                dueAt.toString(),
+                isLate ? "<p style='color:red'><strong>Overdue Fee:</strong> You owe " + fee + " kr for returning this item late.</p>" : ""
+        );
+    }
+
 }

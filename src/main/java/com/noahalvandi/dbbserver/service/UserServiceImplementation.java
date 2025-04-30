@@ -156,17 +156,22 @@ public class UserServiceImplementation implements UserService {
     @Override
     @Transactional
     public String returnResource(String barcode) {
+        LocalDateTime now = LocalDateTime.now();
+
         // Try book copy first
         BookCopy bookCopy = bookCopyRepository.findByBarcode(barcode).orElse(null);
         if (bookCopy != null) {
             Loan loan = loanRepository.findActiveLoanByBookCopy(bookCopy)
                     .orElseThrow(() -> new ResourceException(HttpStatus.NOT_FOUND, "No active loan found for this book copy."));
 
-            loan.setReturnedDate(LocalDateTime.now());
+            loan.setReturnedDate(now);
             bookCopy.setStatus(ItemStatus.AVAILABLE);
 
             loanRepository.save(loan);
             bookCopyRepository.save(bookCopy);
+
+            sendReturnReceiptEmail(loan.getUser(), bookCopy.getBook().getTitle(), loan.getDueDate(), now);
+
             return "Book returned successfully.";
         }
 
@@ -176,16 +181,20 @@ public class UserServiceImplementation implements UserService {
             Loan loan = loanRepository.findActiveLoanByFilmCopy(filmCopy)
                     .orElseThrow(() -> new ResourceException(HttpStatus.NOT_FOUND, "No active loan found for this film copy."));
 
-            loan.setReturnedDate(LocalDateTime.now());
+            loan.setReturnedDate(now);
             filmCopy.setStatus(ItemStatus.AVAILABLE);
 
             loanRepository.save(loan);
             filmCopyRepository.save(filmCopy);
+
+            sendReturnReceiptEmail(loan.getUser(), filmCopy.getFilm().getTitle(), loan.getDueDate(), now);
+
             return "Film returned successfully.";
         }
 
         throw new ResourceException(HttpStatus.NOT_FOUND, "No resource found with barcode: " + barcode);
     }
+
 
     @Override
     public Page<LoanResponse> getUserLoan(User user, Pageable pageable) {
@@ -235,7 +244,6 @@ public class UserServiceImplementation implements UserService {
             );
         }
     }
-
 
     private void sendAccountDeletionEmail(String toEmail, String firstName) throws MessagingException {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -292,6 +300,35 @@ public class UserServiceImplementation implements UserService {
 
         helper.setText(htmlContent, true);
         mailSender.send(mimeMessage);
+    }
+
+    private void sendReturnReceiptEmail(User user, String title, LocalDateTime dueDate, LocalDateTime returnedDate) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setTo(user.getEmail());
+            helper.setSubject("📬 Return Confirmation - Luleå University Library");
+
+            boolean isLate = returnedDate.isAfter(dueDate);
+            long daysLate = isLate ? java.time.Duration.between(dueDate, returnedDate).toDays() : 0;
+            int overdueFee = (int) daysLate * GlobalConstants.DAILY_OVERDUE_FEE;
+
+            String htmlContent = EmailTemplates.getReturnReceiptTemplate(
+                    user.getFirstName(),
+                    title,
+                    returnedDate,
+                    dueDate,
+                    isLate,
+                    overdueFee
+            );
+
+            helper.setText(htmlContent, true);
+            mailSender.send(mimeMessage);
+
+        } catch (MessagingException e) {
+            log.error("Failed to send return receipt email to {}: {}", user.getEmail(), e.getMessage(), e);
+        }
     }
 
 }
