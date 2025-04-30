@@ -74,7 +74,7 @@ public class PasswordResetServiceImplementation implements PasswordResetService 
         helper.setTo(toEmail);
         helper.setSubject("Reset Your Password");
 
-        String htmlContent = EmailTemplates.getHtmlTemplate(resetLink);
+        String htmlContent = EmailTemplates.getResetPasswordTemplate(resetLink);
         helper.setText(htmlContent, true); // true = isHtml
 
         mailSender.send(mimeMessage);

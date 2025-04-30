@@ -14,4 +14,6 @@ public class GlobalConstants {
     public static final int LOAN_DAYS_FOR_NON_COURSE_LITERATURE_BOOKS = 30;
     public static final int LOAN_DAYS_FOR_FILMS = 7;
 
+    public static final int DAILY_OVERDUE_FEE = 10;
+
 }

@@ -145,6 +145,13 @@ public class UserServiceImplementation implements UserService {
         copy.setStatus(ItemStatus.BORROWED);
         bookCopyRepository.save(copy);
 
+        // Sending receipt of the Loan transaction via mail:
+        try {
+            sendLoanReceiptEmail(foundUser, loan, copy);
+        } catch (MessagingException e) {
+            log.error("Failed to send loan receipt email: {}", e.getMessage(), e);
+        }
+
         return copy;
     }
 
@@ -217,4 +224,24 @@ public class UserServiceImplementation implements UserService {
     public boolean isAdmin(User user) {
         return user.getUserType() == User.UserType.ADMIN;
     }
+
+    private void sendLoanReceiptEmail(User user, Loan loan, BookCopy copy) throws MessagingException {
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+        helper.setTo(user.getEmail());
+        helper.setSubject("📚 Loan Receipt - Luleå University Library");
+
+        String htmlContent = EmailTemplates.getLoanReceiptTemplate(
+                user.getFirstName(),
+                copy.getBook().getTitle(),
+                loan.getLoanDate(),
+                loan.getDueDate(),
+                GlobalConstants.DAILY_OVERDUE_FEE
+        );
+
+        helper.setText(htmlContent, true);
+        mailSender.send(mimeMessage);
+    }
+
 }

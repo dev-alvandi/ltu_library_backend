@@ -1,8 +1,11 @@
 package com.noahalvandi.dbbserver.util;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+
 public class EmailTemplates {
 
-    public static String getHtmlTemplate(String resetLink) {
+    public static String getResetPasswordTemplate(String resetLink) {
         return """
             <!DOCTYPE html>
             <html>
@@ -81,4 +84,46 @@ public class EmailTemplates {
         </html>
     """.formatted(firstName);
     }
+
+    public static String getLoanReceiptTemplate(String firstName, String bookTitle, Instant loanDate, LocalDateTime dueDate, int dailyOverdueFee) {
+        return """
+        <!DOCTYPE html>
+        <html>
+            <head>
+              <style>
+                h2 {
+                  text-transform: capitalize;
+                }
+                .container {
+                  font-family: Arial, sans-serif;
+                  background-color: #f9f9f9;
+                  padding: 30px;
+                  border-radius: 10px;
+                  max-width: 600px;
+                  margin: auto;
+                  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                }
+                .footer {
+                  font-size: 12px;
+                  color: #999;
+                  margin-top: 30px;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h2>Hello, %s!</h2>
+                <p>Thank you for borrowing from Luleå University Library.</p>
+                <p><strong>Book Title:</strong> %s</p>
+                <p><strong>Loan Date:</strong> %s</p>
+                <p><strong>Due Date:</strong> %s</p>
+                <p><strong>Overdue Fee:</strong> %d kr/day after the due date.</p>
+                <p>Please return the item on time to avoid penalties.</p>
+                <div class="footer">Best regards,<br><strong>The Luleå University Library Team</strong></div>
+              </div>
+            </body>
+        </html>
+    """.formatted(firstName, bookTitle, loanDate.toString(), dueDate.toString(), dailyOverdueFee);
+    }
+
 }
