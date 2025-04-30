@@ -17,7 +17,9 @@ public interface UserService {
 
     public void deleteUserAccount(User user);
 
-    public BookCopy borrowBookCopy(UUID userId, UUID bookId);
+    public BookCopy borrowBookCopy(User user, UUID bookId);
+
+    public String returnResource(String barcode);
 
     Page<LoanResponse> getUserLoan(User user, Pageable pageable) throws UserException;
 

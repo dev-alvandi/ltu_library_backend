@@ -1,8 +1,6 @@
 package com.noahalvandi.dbbserver.repository;
 
-import com.noahalvandi.dbbserver.model.Book;
 import com.noahalvandi.dbbserver.model.BookCopy;
-import org.aspectj.weaver.ast.And;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -70,4 +68,7 @@ public interface BookCopyRepository extends JpaRepository<BookCopy, UUID> {
     void deleteBookCopyByBookCopyId(@Param("bookCopyId") UUID bookCopyId);
 
     List<BookCopy> findAllByBookBookId(UUID bookId);
+
+    Optional<BookCopy> findByBarcode(String barcode);
+
 }

@@ -119,7 +119,7 @@ public class UserController {
 
         User user = userService.findUserProfileByJwt(jwt);
 
-        BookCopy borrowedCopy = userService.borrowBookCopy(user.getUserId() ,bookId);
+        BookCopy borrowedCopy = userService.borrowBookCopy(user ,bookId);
 
         return new ResponseEntity<>(borrowedCopy, HttpStatus.CREATED) ;
     }
@@ -133,8 +133,6 @@ public class UserController {
         User user = userService.findUserProfileByJwt(jwt);
 
         Page<LoanResponse> loan = userService.getUserLoan(user, pageable);
-
-        System.out.println(loan.getContent().toString());
 
         return new ResponseEntity<>(loan, HttpStatus.OK);
     }
@@ -151,4 +149,23 @@ public class UserController {
 
         return new ResponseEntity<>(reservationResponses, HttpStatus.OK);
     }
+
+    @PutMapping("/return-resource/{barcode}")
+    public ResponseEntity<String> returnResource(
+            @PathVariable String barcode,
+            @RequestHeader("Authorization") String jwt
+    ) throws UserException {
+
+        User user = userService.findUserProfileByJwt(jwt);
+
+        if (!userService.isAdminOrLibrarian(user)) {
+            throw new UserException("User is not admin or librarian.");
+        }
+
+        String response = userService.returnResource(barcode);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+
 }

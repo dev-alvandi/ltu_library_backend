@@ -7,12 +7,9 @@ import com.noahalvandi.dbbserver.dto.response.LoanResponse;
 import com.noahalvandi.dbbserver.dto.response.LoanStatus;
 import com.noahalvandi.dbbserver.exception.ResourceException;
 import com.noahalvandi.dbbserver.exception.UserException;
-import com.noahalvandi.dbbserver.model.Book;
-import com.noahalvandi.dbbserver.model.BookCopy;
-import com.noahalvandi.dbbserver.model.ItemStatus;
-import com.noahalvandi.dbbserver.model.Loan;
-import com.noahalvandi.dbbserver.model.User;
+import com.noahalvandi.dbbserver.model.*;
 import com.noahalvandi.dbbserver.repository.BookCopyRepository;
+import com.noahalvandi.dbbserver.repository.FilmCopyRepository;
 import com.noahalvandi.dbbserver.repository.LoanRepository;
 import com.noahalvandi.dbbserver.repository.UserRepository;
 import com.noahalvandi.dbbserver.util.EmailTemplates;
@@ -29,7 +26,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -55,6 +51,7 @@ public class UserServiceImplementation implements UserService {
     private final JavaMailSender mailSender;
     private final LoanRepository loanRepository;
     private final BookCopyRepository bookCopyRepository;
+    private final FilmCopyRepository filmCopyRepository;
     private final S3Service s3Service;
 
 
@@ -118,9 +115,13 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     @Transactional
-    public BookCopy borrowBookCopy(UUID userId, UUID bookId) {
+    public BookCopy borrowBookCopy(User user, UUID bookId) {
+
+        // Check whether the user has reached it active loan limits
+        checkActiveLoanLimit(user);
+
         // Check if the user already borrowed the book
-        boolean alreadyBorrowed = loanRepository.existsByUserIdAndBookIdAndNotReturned(userId, bookId);
+        boolean alreadyBorrowed = loanRepository.existsByUserIdAndBookIdAndNotReturned(user.getUserId(), bookId);
         if (alreadyBorrowed) {
             throw ResourceException.conflict("User already borrowed the book.");
         }
@@ -128,15 +129,12 @@ public class UserServiceImplementation implements UserService {
         BookCopy copy = bookCopyRepository.findFirstAvailableBookCopy(bookId)
                 .orElseThrow(() -> new ResourceException(HttpStatus.NOT_FOUND, "You may not borrow the same item twice at a time!"));
 
-        User foundUser = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
         int loanDays = copy.getBook().getBookType() == Book.BookType.COURSE_LITERATURE ?
                 GlobalConstants.LOAN_DAYS_FOR_COURSE_LITERATURE_BOOKS :
                 GlobalConstants.LOAN_DAYS_FOR_NON_COURSE_LITERATURE_BOOKS;
 
         Loan loan = new Loan();
-        loan.setUser(foundUser);
+        loan.setUser(user);
         loan.setBookCopy(copy);
         loan.setLoanDate(Instant.now());
         loan.setDueDate(LocalDateTime.now().plusDays(loanDays));
@@ -147,7 +145,7 @@ public class UserServiceImplementation implements UserService {
 
         // Sending receipt of the Loan transaction via mail:
         try {
-            sendLoanReceiptEmail(foundUser, loan, copy);
+            sendLoanReceiptEmail(user, loan, copy);
         } catch (MessagingException e) {
             log.error("Failed to send loan receipt email: {}", e.getMessage(), e);
         }
@@ -155,6 +153,39 @@ public class UserServiceImplementation implements UserService {
         return copy;
     }
 
+    @Override
+    @Transactional
+    public String returnResource(String barcode) {
+        // Try book copy first
+        BookCopy bookCopy = bookCopyRepository.findByBarcode(barcode).orElse(null);
+        if (bookCopy != null) {
+            Loan loan = loanRepository.findActiveLoanByBookCopy(bookCopy)
+                    .orElseThrow(() -> new ResourceException(HttpStatus.NOT_FOUND, "No active loan found for this book copy."));
+
+            loan.setReturnedDate(LocalDateTime.now());
+            bookCopy.setStatus(ItemStatus.AVAILABLE);
+
+            loanRepository.save(loan);
+            bookCopyRepository.save(bookCopy);
+            return "Book returned successfully.";
+        }
+
+        // Try film copy
+        FilmCopy filmCopy = filmCopyRepository.findByBarcode(barcode).orElse(null);
+        if (filmCopy != null) {
+            Loan loan = loanRepository.findActiveLoanByFilmCopy(filmCopy)
+                    .orElseThrow(() -> new ResourceException(HttpStatus.NOT_FOUND, "No active loan found for this film copy."));
+
+            loan.setReturnedDate(LocalDateTime.now());
+            filmCopy.setStatus(ItemStatus.AVAILABLE);
+
+            loanRepository.save(loan);
+            filmCopyRepository.save(filmCopy);
+            return "Film returned successfully.";
+        }
+
+        throw new ResourceException(HttpStatus.NOT_FOUND, "No resource found with barcode: " + barcode);
+    }
 
     @Override
     public Page<LoanResponse> getUserLoan(User user, Pageable pageable) {
@@ -180,11 +211,30 @@ public class UserServiceImplementation implements UserService {
                     ? LoanStatus.RETURNED
                     : (LocalDateTime.now().isAfter(item.getDueAt()) ? LoanStatus.OVERDUE : LoanStatus.NOT_RETURNED);
 
+            item.setStatus(status);
         });
 
         return new PageImpl<>(pagedList, pageable, combined.size());
     }
 
+    private void checkActiveLoanLimit(User user) {
+        int activeLoanCount = loanRepository.countByUserAndReturnedDateIsNull(user);
+
+        int allowedLimit = switch (user.getUserType()) {
+            case ADMIN, LIBRARIAN -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_ADMIN_AND_LIBRARIAN;
+            case UNIVERSITY_STAFF -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_UNIVERSITY_STAFF;
+            case RESEARCHER -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_RESEARCHER;
+            case STUDENT -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_STUDENT;
+            case PUBLIC -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_PUBLIC;
+        };
+
+        if (activeLoanCount >= allowedLimit) {
+            throw ResourceException.conflict(
+                    "You have reached your loan limit (%d active loans allowed for %s)."
+                            .formatted(allowedLimit, user.getUserType().name().replace('_', ' '))
+            );
+        }
+    }
 
 
     private void sendAccountDeletionEmail(String toEmail, String firstName) throws MessagingException {

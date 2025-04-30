@@ -14,6 +14,12 @@ public class GlobalConstants {
     public static final int LOAN_DAYS_FOR_NON_COURSE_LITERATURE_BOOKS = 30;
     public static final int LOAN_DAYS_FOR_FILMS = 7;
 
+    public static final int MAXIMUM_ACTIVE_LOANS_PER_ADMIN_AND_LIBRARIAN = 10;
+    public static final int MAXIMUM_ACTIVE_LOANS_PER_UNIVERSITY_STAFF = 10;
+    public static final int MAXIMUM_ACTIVE_LOANS_PER_RESEARCHER = 7;
+    public static final int MAXIMUM_ACTIVE_LOANS_PER_STUDENT = 5;
+    public static final int MAXIMUM_ACTIVE_LOANS_PER_PUBLIC = 3;
+
     public static final int DAILY_OVERDUE_FEE = 10;
 
 }
