@@ -3,6 +3,7 @@ package com.noahalvandi.dbbserver.service;
 import com.noahalvandi.dbbserver.dto.response.ReservationResponse;
 import com.noahalvandi.dbbserver.model.Reservation;
 import com.noahalvandi.dbbserver.repository.ReservationRepository;
+import com.noahalvandi.dbbserver.util.GlobalConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,7 +50,7 @@ public class ReservationServiceImplementation implements ReservationService {
         // Now generate the presigned URLs if imageUrl is not null
         reservationResponses.getContent().forEach(item -> {
             if (item.getImageUrl() != null) {
-                String presignedUrl = s3Service.generatePresignedUrl(item.getImageUrl(), 5); // 5 minutes
+                String presignedUrl = s3Service.generatePresignedUrl(item.getImageUrl(), GlobalConstants.CLOUD_URL_EXPIRATION_TIME_IN_MINUTES);
                 item.setImageUrl(presignedUrl);
             }
         });

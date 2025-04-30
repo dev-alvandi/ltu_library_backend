@@ -17,6 +17,7 @@ public class LoanResponse {
     private LocalDateTime dueAt;
     private boolean isReturned;
     private LoanStatus status;
+    private boolean extendable;
 
     public LoanResponse(UUID loanId, String imageUrl, String title,
                         Instant borrowedAt, LocalDateTime dueAt, boolean isReturned) {

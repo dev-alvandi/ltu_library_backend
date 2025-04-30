@@ -167,5 +167,17 @@ public class UserController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @PutMapping("/extend-loan/{loanId}")
+    public ResponseEntity<String> returnResource(
+            @PathVariable UUID loanId,
+            @RequestHeader("Authorization") String jwt
+    ) throws UserException {
+
+        User user = userService.findUserProfileByJwt(jwt);
+
+        String response = userService.extendLoan(loanId);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
 
 }

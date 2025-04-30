@@ -22,4 +22,8 @@ public class GlobalConstants {
 
     public static final int DAILY_OVERDUE_FEE = 10;
 
+    public static final int MAXIMUM_LOAN_EXTENSION_COUNT = 3;
+
+    public static final int CLOUD_URL_EXPIRATION_TIME_IN_MINUTES = 5;
+
 }

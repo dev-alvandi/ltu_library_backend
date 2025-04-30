@@ -31,12 +31,13 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -197,6 +198,56 @@ public class UserServiceImplementation implements UserService {
 
 
     @Override
+    @Transactional
+    public String extendLoan(UUID loanId) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new ResourceException(HttpStatus.NOT_FOUND, "Loan not found"));
+
+        if (loan.getReturnedDate() != null) {
+            throw ResourceException.conflict("This resource has already been returned.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isAfter(loan.getDueDate())) {
+            throw ResourceException.conflict("You cannot extend an overdue loan.");
+        }
+
+        int baseLoanDays;
+
+        if (loan.getBookCopy() != null) {
+            Book book = loan.getBookCopy().getBook();
+            baseLoanDays = book.getBookType() == Book.BookType.COURSE_LITERATURE
+                    ? GlobalConstants.LOAN_DAYS_FOR_COURSE_LITERATURE_BOOKS
+                    : GlobalConstants.LOAN_DAYS_FOR_NON_COURSE_LITERATURE_BOOKS;
+        } else if (loan.getFilmCopy() != null) {
+            baseLoanDays = GlobalConstants.LOAN_DAYS_FOR_FILMS;
+        } else {
+            throw ResourceException.badRequest("No associated book or film found on this loan.");
+        }
+
+        // Calculate current extension count based on how far dueDate is from loanDate
+        Instant loanDate = loan.getLoanDate();
+        Instant dueDateAsInstant = loan.getDueDate().atZone(ZoneId.systemDefault()).toInstant();
+
+        long totalDays = Duration.between(loanDate, dueDateAsInstant).toDays();
+
+        int currentMultiplier = (int) (totalDays / baseLoanDays);
+        int maxMultiplier = GlobalConstants.MAXIMUM_LOAN_EXTENSION_COUNT + 1;
+
+        if (currentMultiplier >= maxMultiplier) {
+            throw ResourceException.conflict("You have reached the maximum number of allowed extensions.");
+        }
+
+
+        loan.setDueDate(loan.getLoanDate().atZone(java.time.ZoneId.systemDefault())
+                .toLocalDateTime().plusDays((long) baseLoanDays * (currentMultiplier + 1)));
+        loanRepository.save(loan);
+
+        return "Loan extended successfully. New due date: " + loan.getDueDate();
+    }
+
+
+    @Override
     public Page<LoanResponse> getUserLoan(User user, Pageable pageable) {
         Page<LoanResponse> bookLoans = loanRepository.findBookLoansByUserId(user.getUserId(), pageable);
         Page<LoanResponse> filmLoans = loanRepository.findFilmLoansByUserId(user.getUserId(), pageable);
@@ -211,17 +262,9 @@ public class UserServiceImplementation implements UserService {
         int end = Math.min(start + pageable.getPageSize(), combined.size());
         List<LoanResponse> pagedList = (start <= end) ? combined.subList(start, end) : new ArrayList<>();
 
-        pagedList.forEach(item -> {
-            if (item.getImageUrl() != null) {
-                item.setImageUrl(s3Service.generatePresignedUrl(item.getImageUrl(), 5));
-            }
+        Map<UUID, Loan> loanMap = fetchLoansByIds(pagedList);
 
-            LoanStatus status = item.isReturned()
-                    ? LoanStatus.RETURNED
-                    : (LocalDateTime.now().isAfter(item.getDueAt()) ? LoanStatus.OVERDUE : LoanStatus.NOT_RETURNED);
-
-            item.setStatus(status);
-        });
+        pagedList.forEach(item -> enrichLoanResponse(item, loanMap.get(item.getLoanId())));
 
         return new PageImpl<>(pagedList, pageable, combined.size());
     }
@@ -331,4 +374,55 @@ public class UserServiceImplementation implements UserService {
         }
     }
 
+    private Map<UUID, Loan> fetchLoansByIds(List<LoanResponse> responses) {
+        List<UUID> ids = responses.stream().map(LoanResponse::getLoanId).toList();
+        return loanRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Loan::getLoanId, Function.identity()));
+    }
+
+    private void enrichLoanResponse(LoanResponse item, Loan loan) {
+        if (item.getImageUrl() != null) {
+            item.setImageUrl(s3Service.generatePresignedUrl(item.getImageUrl(), GlobalConstants.CLOUD_URL_EXPIRATION_TIME_IN_MINUTES));
+        }
+
+        LoanStatus status = determineLoanStatus(item);
+        item.setStatus(status);
+
+        boolean extendable = switch (status) {
+            case RETURNED, OVERDUE -> false;
+            case NOT_RETURNED -> isLoanExtendable(item, loan);
+        };
+        item.setExtendable(extendable);
+    }
+
+    private LoanStatus determineLoanStatus(LoanResponse item) {
+        return item.isReturned()
+                ? LoanStatus.RETURNED
+                : (LocalDateTime.now().isAfter(item.getDueAt()) ? LoanStatus.OVERDUE : LoanStatus.NOT_RETURNED);
+    }
+
+    private boolean isLoanExtendable(LoanResponse item, Loan loan) {
+        if (loan == null) return false;
+
+        int baseLoanDays = 0;
+        if (loan.getFilmCopy() != null) {
+            baseLoanDays = GlobalConstants.LOAN_DAYS_FOR_FILMS;
+        } else if (loan.getBookCopy() != null) {
+            Book.BookType type = loan.getBookCopy().getBook().getBookType();
+            baseLoanDays = switch (type) {
+                case COURSE_LITERATURE -> GlobalConstants.LOAN_DAYS_FOR_COURSE_LITERATURE_BOOKS;
+                case PUBLIC -> GlobalConstants.LOAN_DAYS_FOR_NON_COURSE_LITERATURE_BOOKS;
+            };
+        }
+
+        long totalDays = Duration.between(
+                item.getBorrowedAt(),
+                item.getDueAt().atZone(ZoneId.systemDefault()).toInstant()
+        ).toDays();
+
+        int currentMultiplier = (int) (totalDays / baseLoanDays);
+        int maxMultiplier = GlobalConstants.MAXIMUM_LOAN_EXTENSION_COUNT + 1;
+
+        return currentMultiplier < maxMultiplier;
+    }
 }

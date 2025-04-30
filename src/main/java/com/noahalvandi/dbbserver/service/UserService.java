@@ -21,6 +21,8 @@ public interface UserService {
 
     public String returnResource(String barcode);
 
+    public String extendLoan(UUID loanId);
+
     Page<LoanResponse> getUserLoan(User user, Pageable pageable) throws UserException;
 
     public boolean isAdminOrLibrarian(User user);

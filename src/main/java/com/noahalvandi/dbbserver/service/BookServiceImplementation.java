@@ -16,6 +16,7 @@ import com.noahalvandi.dbbserver.exception.ResourceException;
 import com.noahalvandi.dbbserver.model.*;
 import com.noahalvandi.dbbserver.repository.*;
 import com.noahalvandi.dbbserver.util.BarcodeUtil;
+import com.noahalvandi.dbbserver.util.GlobalConstants;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -247,7 +248,7 @@ public class BookServiceImplementation implements BookService {
         BookResponse fetchedBook = BookResponseMapper.toDto(book);
 
         if (fetchedBook.getImageUrl() != null) {
-            String presignedUrl = s3Service.generatePresignedUrl(fetchedBook.getImageUrl(), 5); // 5 minutes
+            String presignedUrl = s3Service.generatePresignedUrl(fetchedBook.getImageUrl(), GlobalConstants.CLOUD_URL_EXPIRATION_TIME_IN_MINUTES);
             fetchedBook.setImageUrl(presignedUrl);
         }
 
@@ -431,7 +432,7 @@ public class BookServiceImplementation implements BookService {
     private <T extends HasImageUrl> Page<T> injectS3ImageUrlIntoDto(Page<T> page) {
         page.getContent().forEach(item -> {
             if (item.getImageUrl() != null) {
-                String presignedUrl = s3Service.generatePresignedUrl(item.getImageUrl(), 5); // 5 min
+                String presignedUrl = s3Service.generatePresignedUrl(item.getImageUrl(), GlobalConstants.CLOUD_URL_EXPIRATION_TIME_IN_MINUTES);
                 item.setImageUrl(presignedUrl);
             }
         });
