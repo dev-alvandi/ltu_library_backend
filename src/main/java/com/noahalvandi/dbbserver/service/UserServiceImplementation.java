@@ -3,14 +3,16 @@ package com.noahalvandi.dbbserver.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.noahalvandi.dbbserver.configuration.JwtProvider;
-import com.noahalvandi.dbbserver.dto.response.LoanItemResponse;
+import com.noahalvandi.dbbserver.dto.response.LoanResponse;
 import com.noahalvandi.dbbserver.dto.response.LoanStatus;
 import com.noahalvandi.dbbserver.exception.ResourceException;
 import com.noahalvandi.dbbserver.exception.UserException;
-import com.noahalvandi.dbbserver.model.*;
-import com.noahalvandi.dbbserver.model.user.User;
+import com.noahalvandi.dbbserver.model.Book;
+import com.noahalvandi.dbbserver.model.BookCopy;
+import com.noahalvandi.dbbserver.model.ItemStatus;
+import com.noahalvandi.dbbserver.model.Loan;
+import com.noahalvandi.dbbserver.model.User;
 import com.noahalvandi.dbbserver.repository.BookCopyRepository;
-import com.noahalvandi.dbbserver.repository.LoanItemRepository;
 import com.noahalvandi.dbbserver.repository.LoanRepository;
 import com.noahalvandi.dbbserver.repository.UserRepository;
 import com.noahalvandi.dbbserver.util.EmailTemplates;
@@ -33,6 +35,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -50,7 +53,6 @@ public class UserServiceImplementation implements UserService {
     private final JwtProvider jwtProvider;
     private final UserRepository userRepository;
     private final JavaMailSender mailSender;
-    private final LoanItemRepository loanItemRepository;
     private final LoanRepository loanRepository;
     private final BookCopyRepository bookCopyRepository;
     private final S3Service s3Service;
@@ -117,89 +119,65 @@ public class UserServiceImplementation implements UserService {
     @Override
     @Transactional
     public BookCopy borrowBookCopy(UUID userId, UUID bookId) {
-        // Check if the user already borrowed a book
-        List<LoanItem> activeLoans = loanItemRepository.findActiveBookLoanByUserAndBook(userId, bookId);
-
-        if (!activeLoans.isEmpty()) {
+        // Check if the user already borrowed the book
+        boolean alreadyBorrowed = loanRepository.existsByUserIdAndBookIdAndNotReturned(userId, bookId);
+        if (alreadyBorrowed) {
             throw ResourceException.conflict("User already borrowed the book.");
         }
 
         BookCopy copy = bookCopyRepository.findFirstAvailableBookCopy(bookId)
                 .orElseThrow(() -> new ResourceException(HttpStatus.NOT_FOUND, "You may not borrow the same item twice at a time!"));
 
-        User foundUser = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        User foundUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // Determine loan period
         int loanDays = copy.getBook().getBookType() == Book.BookType.COURSE_LITERATURE ?
                 GlobalConstants.LOAN_DAYS_FOR_COURSE_LITERATURE_BOOKS :
                 GlobalConstants.LOAN_DAYS_FOR_NON_COURSE_LITERATURE_BOOKS;
 
-        // Create Loan
         Loan loan = new Loan();
         loan.setUser(foundUser);
-        loan.setLoanDate(LocalDateTime.now());
+        loan.setBookCopy(copy);
+        loan.setLoanDate(Instant.now());
+        loan.setDueDate(LocalDateTime.now().plusDays(loanDays));
         loanRepository.save(loan);
 
-        // Create LoanItem
-        LoanItem loanItem = new LoanItem();
-        loanItem.setLoan(loan);
-        loanItem.setBookCopy(copy);
-        loanItem.setDueDate(LocalDateTime.now().plusDays(loanDays));
-        loanItemRepository.save(loanItem);
-
-        // Update BookCopy status
-        copy.setStatus(ItemStatus.BORROWED); // or status = 2
+        copy.setStatus(ItemStatus.BORROWED);
         bookCopyRepository.save(copy);
 
         return copy;
     }
 
+
     @Override
-    public Page<LoanItemResponse> getUserLoanItems(User user, Pageable pageable) throws UserException {
-        // Fetch pages separately
-        Page<LoanItemResponse> bookLoanItems = loanItemRepository.findBookLoanItemsByUserId(user.getUserId(), pageable);
-        Page<LoanItemResponse> filmLoanItems = loanItemRepository.findFilmLoanItemsByUserId(user.getUserId(), pageable);
+    public Page<LoanResponse> getUserLoan(User user, Pageable pageable) {
+        Page<LoanResponse> bookLoans = loanRepository.findBookLoansByUserId(user.getUserId(), pageable);
+        Page<LoanResponse> filmLoans = loanRepository.findFilmLoansByUserId(user.getUserId(), pageable);
 
-        // Merge both Page contents
-        List<LoanItemResponse> combinedItems = new ArrayList<>();
-        combinedItems.addAll(bookLoanItems.getContent());
-        combinedItems.addAll(filmLoanItems.getContent());
+        List<LoanResponse> combined = new ArrayList<>();
+        combined.addAll(bookLoans.getContent());
+        combined.addAll(filmLoans.getContent());
 
-        // Sort all by dueAt descending
-        combinedItems.sort(Comparator.comparing(LoanItemResponse::getDueAt).reversed());
+        combined.sort(Comparator.comparing(LoanResponse::getDueAt).reversed());
 
-        // Manual pagination (since original pages are separate)
         int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), combinedItems.size());
-        List<LoanItemResponse> pagedList;
+        int end = Math.min(start + pageable.getPageSize(), combined.size());
+        List<LoanResponse> pagedList = (start <= end) ? combined.subList(start, end) : new ArrayList<>();
 
-        if (start <= end) {
-            pagedList = combinedItems.subList(start, end);
-        } else {
-            pagedList = new ArrayList<>();
-        }
-
-        // Apply S3 URL and loan status logic
         pagedList.forEach(item -> {
             if (item.getImageUrl() != null) {
-                String presignedUrl = s3Service.generatePresignedUrl(item.getImageUrl(), 5); // 5 minutes
-                item.setImageUrl(presignedUrl);
+                item.setImageUrl(s3Service.generatePresignedUrl(item.getImageUrl(), 5));
             }
 
-            LoanStatus status;
-            LocalDateTime now = LocalDateTime.now();
-            if (item.isReturned()) {
-                status = LoanStatus.RETURNED;
-            } else if (now.isAfter(item.getDueAt())) {
-                status = LoanStatus.OVERDUE;
-            } else {
-                status = LoanStatus.NOT_RETURNED;
-            }
-            item.setStatus(status);
+            LoanStatus status = item.isReturned()
+                    ? LoanStatus.RETURNED
+                    : (LocalDateTime.now().isAfter(item.getDueAt()) ? LoanStatus.OVERDUE : LoanStatus.NOT_RETURNED);
+
         });
 
-        return new PageImpl<>(pagedList, pageable, combinedItems.size());
+        return new PageImpl<>(pagedList, pageable, combined.size());
     }
+
 
 
     private void sendAccountDeletionEmail(String toEmail, String firstName) throws MessagingException {

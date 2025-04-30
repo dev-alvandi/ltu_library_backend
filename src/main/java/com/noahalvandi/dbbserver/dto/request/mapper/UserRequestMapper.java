@@ -1,7 +1,7 @@
 package com.noahalvandi.dbbserver.dto.request.mapper;
 
 import com.noahalvandi.dbbserver.dto.request.UserRequest;
-import com.noahalvandi.dbbserver.model.user.User;
+import com.noahalvandi.dbbserver.model.User;
 
 public class UserRequestMapper {
     public static User toEntity(UserRequest userRequest) {

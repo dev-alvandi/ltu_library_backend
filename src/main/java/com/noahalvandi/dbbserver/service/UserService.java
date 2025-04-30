@@ -1,9 +1,9 @@
 package com.noahalvandi.dbbserver.service;
 
-import com.noahalvandi.dbbserver.dto.response.LoanItemResponse;
+import com.noahalvandi.dbbserver.dto.response.LoanResponse;
 import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.BookCopy;
-import com.noahalvandi.dbbserver.model.user.User;
+import com.noahalvandi.dbbserver.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -19,7 +19,7 @@ public interface UserService {
 
     public BookCopy borrowBookCopy(UUID userId, UUID bookId);
 
-    Page<LoanItemResponse> getUserLoanItems(User user, Pageable pageable) throws UserException;
+    Page<LoanResponse> getUserLoan(User user, Pageable pageable) throws UserException;
 
     public boolean isAdminOrLibrarian(User user);
 

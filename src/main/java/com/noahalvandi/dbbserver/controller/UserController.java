@@ -4,13 +4,13 @@ import com.noahalvandi.dbbserver.configuration.JwtProvider;
 import com.noahalvandi.dbbserver.dto.projection.AuthResponse;
 import com.noahalvandi.dbbserver.dto.projection.PasswordRequest;
 import com.noahalvandi.dbbserver.dto.request.UserRequest;
-import com.noahalvandi.dbbserver.dto.response.LoanItemResponse;
+import com.noahalvandi.dbbserver.dto.response.LoanResponse;
 import com.noahalvandi.dbbserver.dto.response.ReservationResponse;
 import com.noahalvandi.dbbserver.dto.response.UserResponse;
 import com.noahalvandi.dbbserver.dto.response.mapper.UserResponseMapper;
 import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.BookCopy;
-import com.noahalvandi.dbbserver.model.user.User;
+import com.noahalvandi.dbbserver.model.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
 import com.noahalvandi.dbbserver.service.ReservationService;
 import com.noahalvandi.dbbserver.service.UserService;
@@ -125,18 +125,18 @@ public class UserController {
     }
 
     @GetMapping("/loans")
-    public ResponseEntity<Page<LoanItemResponse>> getUserLoanItems(
+    public ResponseEntity<Page<LoanResponse>> getUserLoan(
             @RequestHeader("Authorization") String jwt,
             @PageableDefault(page = 0, size = 10, sort = "dueDate", direction = Sort.Direction.ASC) Pageable pageable
     ) throws UserException {
 
         User user = userService.findUserProfileByJwt(jwt);
 
-        Page<LoanItemResponse> loanItems = userService.getUserLoanItems(user, pageable);
+        Page<LoanResponse> loan = userService.getUserLoan(user, pageable);
 
-        System.out.println(loanItems.getContent().toString());
+        System.out.println(loan.getContent().toString());
 
-        return new ResponseEntity<>(loanItems, HttpStatus.OK);
+        return new ResponseEntity<>(loan, HttpStatus.OK);
     }
 
     @GetMapping("/reservations")

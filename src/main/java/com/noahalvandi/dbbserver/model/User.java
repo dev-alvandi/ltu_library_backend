@@ -1,7 +1,6 @@
-package com.noahalvandi.dbbserver.model.user;
+package com.noahalvandi.dbbserver.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.noahalvandi.dbbserver.model.Reservation;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

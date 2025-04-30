@@ -1,12 +1,10 @@
 package com.noahalvandi.dbbserver.model;
 
-import com.noahalvandi.dbbserver.model.user.User;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity

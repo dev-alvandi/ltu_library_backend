@@ -6,7 +6,7 @@ import com.noahalvandi.dbbserver.dto.request.PasswordResetRequest;
 import com.noahalvandi.dbbserver.dto.request.RequestPasswordResetRequest;
 import com.noahalvandi.dbbserver.dto.request.RegisterRequest;
 import com.noahalvandi.dbbserver.exception.UserException;
-import com.noahalvandi.dbbserver.model.user.User;
+import com.noahalvandi.dbbserver.model.User;
 import com.noahalvandi.dbbserver.repository.UserRepository;
 import com.noahalvandi.dbbserver.dto.projection.AuthResponse;
 import com.noahalvandi.dbbserver.service.CustomUserDetailsServiceImplementation;

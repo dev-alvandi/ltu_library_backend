@@ -1,9 +1,9 @@
 package com.noahalvandi.dbbserver.model;
 
-import com.noahalvandi.dbbserver.model.user.User;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -15,12 +15,29 @@ public class Loan {
     @GeneratedValue()
     private UUID loanId;
 
-    private LocalDateTime loanDate;
-
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-//    @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<LoanItem> loanItems = new ArrayList<>();
+    @ManyToOne
+    @JoinColumn(name = "book_copy_id")
+    private BookCopy bookCopy;
+
+    @ManyToOne
+    @JoinColumn(name = "film_copy_id")
+    private FilmCopy filmCopy;
+
+    @Column(nullable = false)
+    private LocalDateTime dueDate;
+
+    @Column(nullable = false)
+    private Instant loanDate;
+
+    @Column
+    private LocalDateTime returnedDate;
+
+    @Transient
+    public boolean isReturnedLate() {
+        return returnedDate != null && returnedDate.isAfter(dueDate);
+    }
 }

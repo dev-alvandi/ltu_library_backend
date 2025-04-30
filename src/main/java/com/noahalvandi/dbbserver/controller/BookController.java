@@ -10,7 +10,7 @@ import com.noahalvandi.dbbserver.dto.response.BookResponse;
 import com.noahalvandi.dbbserver.dto.response.BookSuggestionsResponse;
 import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.Book;
-import com.noahalvandi.dbbserver.model.user.User;
+import com.noahalvandi.dbbserver.model.User;
 import com.noahalvandi.dbbserver.service.BookCategoryService;
 import com.noahalvandi.dbbserver.service.BookService;
 import com.noahalvandi.dbbserver.service.UserService;

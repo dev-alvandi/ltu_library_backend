@@ -1,10 +1,6 @@
 package com.noahalvandi.dbbserver.dto.request;
 
-import com.noahalvandi.dbbserver.model.user.User;
 import lombok.Data;
-
-import java.time.LocalDate;
-import java.util.UUID;
 
 @Data
 public class UserRequest {
