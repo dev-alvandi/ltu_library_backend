@@ -1,7 +1,7 @@
 //package com.noahalvandi.dbbserver.service;
 //
 //import com.fasterxml.jackson.databind.ObjectMapper;
-//import com.noahalvandi.dbbserver.configuration.JwtProvider;
+//import com.noahalvandi.dbbserver.security.JwtProvider;
 //import com.noahalvandi.dbbserver.model.User;
 //import com.noahalvandi.dbbserver.repository.UserRepository;
 //import org.junit.jupiter.api.BeforeEach;

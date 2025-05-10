@@ -1,6 +1,6 @@
 package com.noahalvandi.dbbserver.controller;
 
-import com.noahalvandi.dbbserver.configuration.JwtProvider;
+import com.noahalvandi.dbbserver.security.JwtProvider;
 import com.noahalvandi.dbbserver.dto.projection.AuthResponse;
 import com.noahalvandi.dbbserver.dto.projection.PasswordRequest;
 import com.noahalvandi.dbbserver.dto.request.UserRequest;
@@ -115,7 +115,10 @@ public class UserController {
 
 
     @PostMapping("/borrow/{bookId}")
-    public ResponseEntity<BookCopy> borrowBookCopy(@PathVariable UUID bookId, @RequestHeader("Authorization") String jwt) throws UserException {
+    public ResponseEntity<BookCopy> borrowBookCopy(
+            @PathVariable UUID bookId,
+            @RequestHeader("Authorization") String jwt
+    ) throws UserException {
 
         User user = userService.findUserProfileByJwt(jwt);
 
@@ -135,6 +138,31 @@ public class UserController {
         Page<LoanResponse> loan = userService.getUserLoan(user, pageable);
 
         return new ResponseEntity<>(loan, HttpStatus.OK);
+    }
+
+    @PostMapping("/reserve/{bookId}")
+    public ResponseEntity<ReservationResponse> reserveBookCopy(
+            @PathVariable UUID bookId,
+            @RequestHeader("Authorization") String jwt
+    ) throws UserException {
+
+        User user = userService.findUserProfileByJwt(jwt);
+
+        ReservationResponse response = reservationService.reserveBookCopy(user, bookId);
+
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/cancel-reservation/{reservationId}")
+    public ResponseEntity<String> cancelReservation(
+            @PathVariable UUID reservationId,
+            @RequestHeader("Authorization") String jwt
+    ) throws UserException {
+        User user = userService.findUserProfileByJwt(jwt);
+
+        reservationService.deleteReservation(user.getUserId(), reservationId);
+
+        return new ResponseEntity<>("Reservation cancelled successfully.", HttpStatus.OK);
     }
 
     @GetMapping("/reservations")

@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.configuration;
+package com.noahalvandi.dbbserver.security;
 
 import com.noahalvandi.dbbserver.util.GlobalConstants;
 import io.github.cdimascio.dotenv.Dotenv;

@@ -1,7 +1,6 @@
 package com.noahalvandi.dbbserver.service;
 
-import com.noahalvandi.dbbserver.dto.projection.BookCategoryCount;
-import com.noahalvandi.dbbserver.model.BookCategory;
+import com.noahalvandi.dbbserver.dto.projection.book.BookCategoryCount;
 import com.noahalvandi.dbbserver.repository.BookCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

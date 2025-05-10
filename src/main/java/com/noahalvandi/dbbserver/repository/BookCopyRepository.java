@@ -34,15 +34,6 @@ public interface BookCopyRepository extends JpaRepository<BookCopy, UUID> {
     public int numberOfAvailableBookCopiesToBorrow(@Param("bookId") UUID bookId);
 
 
-
-    @Query("""
-        SELECT bc FROM BookCopy bc
-            WHERE bc.bookCopyId = :bookId
-                AND bc.status = 0
-                And bc.isReferenceCopy = 0
-    """)
-    public List<BookCopy> findAllAvailableBookCopiesToBorrow(@Param("bookId") UUID bookId);
-
     // Borrow BookCopy
     @Query("""
     SELECT bc FROM BookCopy bc
@@ -62,10 +53,6 @@ public interface BookCopyRepository extends JpaRepository<BookCopy, UUID> {
     @Modifying
     @Query("DELETE FROM BookCopy bc WHERE bc.book.bookId = :bookId")
     void deleteBookCopiesByBookId(@Param("bookId") UUID bookId);
-
-    @Modifying
-    @Query("DELETE FROM BookCopy bc WHERE bc.bookCopyId = :bookCopyId")
-    void deleteBookCopyByBookCopyId(@Param("bookCopyId") UUID bookCopyId);
 
     List<BookCopy> findAllByBookBookId(UUID bookId);
 

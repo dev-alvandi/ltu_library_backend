@@ -1,6 +1,6 @@
 package com.noahalvandi.dbbserver.controller;
 
-import com.noahalvandi.dbbserver.configuration.JwtProvider;
+import com.noahalvandi.dbbserver.security.JwtProvider;
 import com.noahalvandi.dbbserver.dto.request.LoginRequest;
 import com.noahalvandi.dbbserver.dto.request.PasswordResetRequest;
 import com.noahalvandi.dbbserver.dto.request.RequestPasswordResetRequest;

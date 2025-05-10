@@ -5,7 +5,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class BookLanguagesCategories {
+public class LanguagesCategories {
 
     List<String> categories;
     List<String> languages;

@@ -43,7 +43,7 @@ public class Film {
     @ToString.Exclude
     private FilmCategory filmCategory;
 
-    @OneToMany(mappedBy = "film", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "film", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @ToString.Exclude
     private List<FilmCopy> filmCopies = new ArrayList<>();
 //

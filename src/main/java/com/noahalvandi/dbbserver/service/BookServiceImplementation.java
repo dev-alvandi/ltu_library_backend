@@ -1,9 +1,8 @@
 package com.noahalvandi.dbbserver.service;
 
-import com.noahalvandi.dbbserver.dto.HasImageUrl;
-import com.noahalvandi.dbbserver.dto.projection.BooksPublishedYearRange;
-import com.noahalvandi.dbbserver.dto.projection.FilterCriteria;
-import com.noahalvandi.dbbserver.dto.projection.BookLanguageCount;
+import com.noahalvandi.dbbserver.dto.projection.LanguageCount;
+import com.noahalvandi.dbbserver.dto.projection.book.BooksPublishedYearRange;
+import com.noahalvandi.dbbserver.dto.projection.book.BookFilterCriteria;
 import com.noahalvandi.dbbserver.dto.request.BookCopyRequest;
 import com.noahalvandi.dbbserver.dto.request.BookRequest;
 import com.noahalvandi.dbbserver.dto.request.mapper.BookRequestMapper;
@@ -14,7 +13,9 @@ import com.noahalvandi.dbbserver.dto.response.mapper.BookCopyResponseMapper;
 import com.noahalvandi.dbbserver.dto.response.mapper.BookResponseMapper;
 import com.noahalvandi.dbbserver.exception.ResourceException;
 import com.noahalvandi.dbbserver.model.*;
-import com.noahalvandi.dbbserver.repository.*;
+import com.noahalvandi.dbbserver.repository.BookCategoryRepository;
+import com.noahalvandi.dbbserver.repository.BookCopyRepository;
+import com.noahalvandi.dbbserver.repository.BookRepository;
 import com.noahalvandi.dbbserver.util.BarcodeUtil;
 import com.noahalvandi.dbbserver.util.GlobalConstants;
 import jakarta.transaction.Transactional;
@@ -25,7 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -44,7 +47,7 @@ public class BookServiceImplementation implements BookService {
         Page<Book> books = bookRepository.findAllAvailableBooksToBorrow(pageable);
         Page<BookResponse> pageBookDtos = books.map(BookResponseMapper::toDto);
 
-        injectS3ImageUrlIntoDto(pageBookDtos); // <--- here
+        s3Service.injectS3ImageUrlIntoDto(pageBookDtos); // <--- here
 
         addingAvailableBookCopiesAndNumberOfNonReferenceCopiesToBookResponse(pageBookDtos);
 
@@ -53,9 +56,9 @@ public class BookServiceImplementation implements BookService {
 
     @Override
     public Map<String, Long> getAllLanguagesAndTheirCounts() {
-        List<BookLanguageCount> counts = bookRepository.getAllLanguagesAndTheirCounts();
+        List<LanguageCount> counts = bookRepository.getAllLanguagesAndTheirCounts();
         return counts.stream()
-                .collect(Collectors.toMap(BookLanguageCount::getLanguage, BookLanguageCount::getCount));
+                .collect(Collectors.toMap(LanguageCount::getLanguage, LanguageCount::getCount));
     }
 
     @Override
@@ -69,18 +72,18 @@ public class BookServiceImplementation implements BookService {
     }
 
     @Override
-    public Page<BookResponse> getFilteredBooks(Pageable pageable, FilterCriteria filterCriteria) {
-        Boolean isAvailable = filterCriteria.isAvailable();
-        List<String> categories = filterCriteria.getCategories();
-        List<String> languages = filterCriteria.getLanguages();
+    public Page<BookResponse> getFilteredBooks(Pageable pageable, BookFilterCriteria bookFilterCriteria) {
+        Boolean isAvailable = bookFilterCriteria.isAvailable();
+        List<String> categories = bookFilterCriteria.getCategories();
+        List<String> languages = bookFilterCriteria.getLanguages();
 
         if (categories != null && categories.isEmpty()) categories = null;
         if (languages != null && languages.isEmpty()) languages = null;
 
         Page<Book> books = bookRepository.findBooksByFilters(
                 isAvailable,
-                filterCriteria.getMinYear(),
-                filterCriteria.getMaxYear(),
+                bookFilterCriteria.getMinYear(),
+                bookFilterCriteria.getMaxYear(),
                 categories,
                 languages,
                 pageable
@@ -88,7 +91,7 @@ public class BookServiceImplementation implements BookService {
 
         Page<BookResponse> bookResponses = books.map(BookResponseMapper::toDto);
 
-        injectS3ImageUrlIntoDto(bookResponses);
+        s3Service.injectS3ImageUrlIntoDto(bookResponses);
 
         return addingAvailableBookCopiesAndNumberOfNonReferenceCopiesToBookResponse(bookResponses);
     }
@@ -108,7 +111,7 @@ public class BookServiceImplementation implements BookService {
 
 
     @Override
-    public Page<BookResponse> getSearchedBooks(String query, Pageable pageable, FilterCriteria filters) {
+    public Page<BookResponse> getSearchedBooks(String query, Pageable pageable, BookFilterCriteria filters) {
         Page<BookResponse> bookResponses = bookRepository.searchWithFilters(
                 query,
                 filters.isAvailable(),
@@ -119,7 +122,7 @@ public class BookServiceImplementation implements BookService {
                 pageable
         ).map(BookResponseMapper::toDto);
 
-        injectS3ImageUrlIntoDto(bookResponses);
+        s3Service.injectS3ImageUrlIntoDto(bookResponses);
 
         return addingAvailableBookCopiesAndNumberOfNonReferenceCopiesToBookResponse(bookResponses);
     }
@@ -426,17 +429,6 @@ public class BookServiceImplementation implements BookService {
                 bookCopy.getBarcode()
         );
         return s3Service.generatePresignedUrl(barcodeKey, expirationInMinutes);
-    }
-
-
-    private <T extends HasImageUrl> Page<T> injectS3ImageUrlIntoDto(Page<T> page) {
-        page.getContent().forEach(item -> {
-            if (item.getImageUrl() != null) {
-                String presignedUrl = s3Service.generatePresignedUrl(item.getImageUrl(), GlobalConstants.CLOUD_URL_EXPIRATION_TIME_IN_MINUTES);
-                item.setImageUrl(presignedUrl);
-            }
-        });
-        return page;
     }
 
 }

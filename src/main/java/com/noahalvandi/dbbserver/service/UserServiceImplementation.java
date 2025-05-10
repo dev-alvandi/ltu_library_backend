@@ -2,16 +2,13 @@ package com.noahalvandi.dbbserver.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.noahalvandi.dbbserver.configuration.JwtProvider;
+import com.noahalvandi.dbbserver.security.JwtProvider;
 import com.noahalvandi.dbbserver.dto.response.LoanResponse;
 import com.noahalvandi.dbbserver.dto.response.LoanStatus;
 import com.noahalvandi.dbbserver.exception.ResourceException;
 import com.noahalvandi.dbbserver.exception.UserException;
 import com.noahalvandi.dbbserver.model.*;
-import com.noahalvandi.dbbserver.repository.BookCopyRepository;
-import com.noahalvandi.dbbserver.repository.FilmCopyRepository;
-import com.noahalvandi.dbbserver.repository.LoanRepository;
-import com.noahalvandi.dbbserver.repository.UserRepository;
+import com.noahalvandi.dbbserver.repository.*;
 import com.noahalvandi.dbbserver.util.EmailTemplates;
 import com.noahalvandi.dbbserver.util.GlobalConstants;
 import jakarta.mail.MessagingException;
@@ -51,6 +48,7 @@ public class UserServiceImplementation implements UserService {
     private final UserRepository userRepository;
     private final JavaMailSender mailSender;
     private final LoanRepository loanRepository;
+    private final ReservationService reservationService;
     private final BookCopyRepository bookCopyRepository;
     private final FilmCopyRepository filmCopyRepository;
     private final S3Service s3Service;
@@ -173,6 +171,9 @@ public class UserServiceImplementation implements UserService {
 
             sendReturnReceiptEmail(loan.getUser(), bookCopy.getBook().getTitle(), loan.getDueDate(), now);
 
+            // Notify the next user in reservation queue, if any
+            reservationService.notifyNextUserForBook(bookCopy.getBook().getBookId());
+
             return "Book returned successfully.";
         }
 
@@ -189,6 +190,9 @@ public class UserServiceImplementation implements UserService {
             filmCopyRepository.save(filmCopy);
 
             sendReturnReceiptEmail(loan.getUser(), filmCopy.getFilm().getTitle(), loan.getDueDate(), now);
+
+            // Notify the next user in reservation queue, if any
+            reservationService.notifyNextUserForFilm(filmCopy.getFilm().getFilmId());
 
             return "Film returned successfully.";
         }
@@ -246,7 +250,6 @@ public class UserServiceImplementation implements UserService {
         return "Loan extended successfully. New due date: " + loan.getDueDate();
     }
 
-
     @Override
     public Page<LoanResponse> getUserLoan(User user, Pageable pageable) {
         Page<LoanResponse> bookLoans = loanRepository.findBookLoansByUserId(user.getUserId(), pageable);
@@ -267,43 +270,6 @@ public class UserServiceImplementation implements UserService {
         pagedList.forEach(item -> enrichLoanResponse(item, loanMap.get(item.getLoanId())));
 
         return new PageImpl<>(pagedList, pageable, combined.size());
-    }
-
-    private void checkActiveLoanLimit(User user) {
-        int activeLoanCount = loanRepository.countByUserAndReturnedDateIsNull(user);
-
-        int allowedLimit = switch (user.getUserType()) {
-            case ADMIN, LIBRARIAN -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_ADMIN_AND_LIBRARIAN;
-            case UNIVERSITY_STAFF -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_UNIVERSITY_STAFF;
-            case RESEARCHER -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_RESEARCHER;
-            case STUDENT -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_STUDENT;
-            case PUBLIC -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_PUBLIC;
-        };
-
-        if (activeLoanCount >= allowedLimit) {
-            throw ResourceException.conflict(
-                    "You have reached your loan limit (%d active loans allowed for %s)."
-                            .formatted(allowedLimit, user.getUserType().name().replace('_', ' '))
-            );
-        }
-    }
-
-    private void sendAccountDeletionEmail(String toEmail, String firstName) throws MessagingException {
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-        helper.setTo(toEmail);
-        helper.setSubject("Goodbye from Luleå University Library 📚 - Account Deletion Confirmation");
-
-        String htmlContent = EmailTemplates.getAccountDeletionHtmlTemplate(firstName);
-        helper.setText(htmlContent, true);
-
-        mailSender.send(mimeMessage);
-    }
-
-    private String capitalize(String str) {
-        if (str == null || str.isBlank()) return "";
-        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
     }
 
     @Override
@@ -424,5 +390,42 @@ public class UserServiceImplementation implements UserService {
         int maxMultiplier = GlobalConstants.MAXIMUM_LOAN_EXTENSION_COUNT + 1;
 
         return currentMultiplier < maxMultiplier;
+    }
+
+    private void checkActiveLoanLimit(User user) {
+        int activeLoanCount = loanRepository.countByUserAndReturnedDateIsNull(user);
+
+        int allowedLimit = switch (user.getUserType()) {
+            case ADMIN, LIBRARIAN -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_ADMIN_AND_LIBRARIAN;
+            case UNIVERSITY_STAFF -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_UNIVERSITY_STAFF;
+            case RESEARCHER -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_RESEARCHER;
+            case STUDENT -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_STUDENT;
+            case PUBLIC -> GlobalConstants.MAXIMUM_ACTIVE_LOANS_PER_PUBLIC;
+        };
+
+        if (activeLoanCount >= allowedLimit) {
+            throw ResourceException.conflict(
+                    "You have reached your loan limit (%d active loans allowed for %s)."
+                            .formatted(allowedLimit, user.getUserType().name().replace('_', ' '))
+            );
+        }
+    }
+
+    private void sendAccountDeletionEmail(String toEmail, String firstName) throws MessagingException {
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+        helper.setTo(toEmail);
+        helper.setSubject("Goodbye from Luleå University Library 📚 - Account Deletion Confirmation");
+
+        String htmlContent = EmailTemplates.getAccountDeletionHtmlTemplate(firstName);
+        helper.setText(htmlContent, true);
+
+        mailSender.send(mimeMessage);
+    }
+
+    private String capitalize(String str) {
+        if (str == null || str.isBlank()) return "";
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
     }
 }

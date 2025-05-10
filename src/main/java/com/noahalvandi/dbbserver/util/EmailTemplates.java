@@ -25,7 +25,7 @@ public class EmailTemplates {
                       padding: 10px 20px;
                       margin-top: 20px;
                       background-color: #0F427E;
-                      color: white;
+                      color: white !important;
                       text-decoration: none;
                       border-radius: 5px;
                     }
@@ -170,6 +170,20 @@ public class EmailTemplates {
                 dueAt.toString(),
                 isLate ? "<p style='color:red'><strong>Overdue Fee:</strong> You owe " + fee + " kr for returning this item late.</p>" : ""
         );
+    }
+
+    public static String getReservationAvailableTemplate(String name, String title) {
+        return """
+        <html>
+        <body>
+            <p>Hi %s,</p>
+            <p>The resource you reserved, <strong>%s</strong>, is now available for you to borrow.</p>
+            <p>Please log in to your account to borrow it. You have %s hours before the opportunity expires.</p>
+            <br/>
+            <p>Best regards,<br/>Luleå University Library 📚</p>
+        </body>
+        </html>
+        """.formatted(name, title, GlobalConstants.HOURS_UNTIL_RESERVATION_EXPIRES);
     }
 
 }

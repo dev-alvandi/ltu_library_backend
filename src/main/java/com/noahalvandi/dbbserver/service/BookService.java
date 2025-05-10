@@ -1,7 +1,7 @@
 package com.noahalvandi.dbbserver.service;
 
-import com.noahalvandi.dbbserver.dto.projection.BooksPublishedYearRange;
-import com.noahalvandi.dbbserver.dto.projection.FilterCriteria;
+import com.noahalvandi.dbbserver.dto.projection.book.BooksPublishedYearRange;
+import com.noahalvandi.dbbserver.dto.projection.book.BookFilterCriteria;
 import com.noahalvandi.dbbserver.dto.request.BookCopyRequest;
 import com.noahalvandi.dbbserver.dto.request.BookRequest;
 import com.noahalvandi.dbbserver.dto.response.BookCopyResponse;
@@ -26,11 +26,11 @@ public interface BookService {
 
     public BooksPublishedYearRange getPublishedYearRange();
 
-    public Page<BookResponse> getFilteredBooks(Pageable pageable, FilterCriteria FilterCriteria);
+    public Page<BookResponse> getFilteredBooks(Pageable pageable, BookFilterCriteria BookFilterCriteria);
 
     public BookSuggestionsResponse getSuggestions(String query);
 
-    public Page<BookResponse> getSearchedBooks(String query, Pageable pageable, FilterCriteria FilterCriteria);
+    public Page<BookResponse> getSearchedBooks(String query, Pageable pageable, BookFilterCriteria BookFilterCriteria);
 
 //    public BookCopy borrowBookCopy(UUID userId, UUID bookId);
 

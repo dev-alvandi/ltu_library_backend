@@ -1,7 +1,7 @@
 package com.noahalvandi.dbbserver.repository;
 
-import com.noahalvandi.dbbserver.dto.projection.BooksPublishedYearRange;
-import com.noahalvandi.dbbserver.dto.projection.BookLanguageCount;
+import com.noahalvandi.dbbserver.dto.projection.book.BooksPublishedYearRange;
+import com.noahalvandi.dbbserver.dto.projection.LanguageCount;
 import com.noahalvandi.dbbserver.model.Book;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,27 +21,22 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     @EntityGraph(attributePaths = {"bookCategory"})
     public Page<Book> findAll(Pageable pageable);
 
-    @Query("SELECT new com.noahalvandi.dbbserver.dto.projection.BookLanguageCount(b.language, COUNT(b)) FROM Book b GROUP BY b.language")
-    public List<BookLanguageCount> getAllLanguagesAndTheirCounts();
+    @Query("SELECT new com.noahalvandi.dbbserver.dto.projection.LanguageCount(b.language, COUNT(b)) FROM Book b GROUP BY b.language")
+    public List<LanguageCount> getAllLanguagesAndTheirCounts();
 
     @Query("SELECT DISTINCT b.language FROM Book b")
     public List<String> getAllLanguages();
 
-    @Query("SELECT new com.noahalvandi.dbbserver.dto.projection.BooksPublishedYearRange(MIN(b.publishedYear), MAX(b.publishedYear)) FROM Book b")
+    @Query("SELECT new com.noahalvandi.dbbserver.dto.projection.book.BooksPublishedYearRange(MIN(b.publishedYear), MAX(b.publishedYear)) FROM Book b")
     public BooksPublishedYearRange getPublishedYearRange();
 
-    @Query("SELECT COUNT(bc) FROM Book b JOIN BookCopy bc ON b.bookId = bc.book.bookId WHERE b.bookId = :bookId")
-    public long countAllCopies(@Param("bookId") UUID bookId);
-
     @Query("""
-    SELECT DISTINCT b FROM Book b
-        WHERE (
-            EXISTS (
-                SELECT bc FROM BookCopy bc
-                WHERE bc.book = b
-                AND bc.status = 0
-                AND bc.isReferenceCopy = 0
-            )
+        SELECT DISTINCT b FROM Book b
+        WHERE EXISTS (
+            SELECT bc FROM BookCopy bc
+            WHERE bc.book = b
+            AND bc.status = 0
+            AND bc.isReferenceCopy = 0
         )
     """)
     public Page<Book> findAllAvailableBooksToBorrow(Pageable pageable);

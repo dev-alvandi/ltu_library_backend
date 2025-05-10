@@ -6,10 +6,10 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class BookCopyResponse {
+public class FilmCopyResponse {
 
-    private UUID bookCopyId;
-    private String barcodeId; // url to the resource in S3
+    private UUID filmCopyId;
+    private String barcodeId;
     private String barcodeUrl;
     private String physicalLocation;
     private ItemStatus status;

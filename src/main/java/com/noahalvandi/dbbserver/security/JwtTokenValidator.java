@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.configuration;
+package com.noahalvandi.dbbserver.security;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import io.jsonwebtoken.Claims;

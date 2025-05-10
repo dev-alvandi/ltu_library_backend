@@ -4,8 +4,11 @@ import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.noahalvandi.dbbserver.dto.HasImageUrl;
+import com.noahalvandi.dbbserver.util.GlobalConstants;
 import io.github.cdimascio.dotenv.Dotenv;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -59,5 +62,15 @@ public class S3ServiceImplementation implements S3Service {
 
         ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
         amazonS3.putObject(BUCKET_NAME, key, inputStream, metadata);
+    }
+
+    @Override
+    public  <T extends HasImageUrl> void injectS3ImageUrlIntoDto(Page<T> page) {
+        page.getContent().forEach(item -> {
+            if (item.getImageUrl() != null) {
+                String presignedUrl = this.generatePresignedUrl(item.getImageUrl(), GlobalConstants.CLOUD_URL_EXPIRATION_TIME_IN_MINUTES);
+                item.setImageUrl(presignedUrl);
+            }
+        });
     }
 }

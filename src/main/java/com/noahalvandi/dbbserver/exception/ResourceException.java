@@ -5,6 +5,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 public class ResourceException extends ResponseStatusException {
 
+
     public ResourceException(HttpStatus status, String reason) {
         super(status, reason);
     }

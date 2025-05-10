@@ -1,8 +1,8 @@
 package com.noahalvandi.dbbserver.controller;
 
-import com.noahalvandi.dbbserver.dto.projection.BookLanguagesCategories;
-import com.noahalvandi.dbbserver.dto.projection.BooksPublishedYearRange;
-import com.noahalvandi.dbbserver.dto.projection.FilterCriteria;
+import com.noahalvandi.dbbserver.dto.projection.LanguagesCategories;
+import com.noahalvandi.dbbserver.dto.projection.book.BooksPublishedYearRange;
+import com.noahalvandi.dbbserver.dto.projection.book.BookFilterCriteria;
 import com.noahalvandi.dbbserver.dto.request.BookCopyRequest;
 import com.noahalvandi.dbbserver.dto.request.BookRequest;
 import com.noahalvandi.dbbserver.dto.response.BookCopyResponse;
@@ -56,12 +56,12 @@ public class BookController {
     }
 
     @GetMapping("/books-categories-and-languages")
-    public ResponseEntity<BookLanguagesCategories> allBooksCategoriesAndLanguages() {
+    public ResponseEntity<LanguagesCategories> allBooksCategoriesAndLanguages() {
 
         List<String> bookCategories = bookCategoryService.getAllBookCategories();
         List<String> bookLanguages = bookService.getAllLanguages();
 
-        BookLanguagesCategories blc = new BookLanguagesCategories();
+        LanguagesCategories blc = new LanguagesCategories();
 
         blc.setCategories(bookCategories);
         blc.setLanguages(bookLanguages);
@@ -137,7 +137,7 @@ public class BookController {
             @RequestParam(required = false) List<String> languages,
             @PageableDefault(page = 0, size = 9, sort = "title", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        FilterCriteria filter = new FilterCriteria(
+        BookFilterCriteria filter = new BookFilterCriteria(
                 isAvailable, minYear, maxYear, categories, languages
         );
 
@@ -163,7 +163,7 @@ public class BookController {
             @RequestParam(required = false) List<String> languages,
             @PageableDefault(page = 0, size = 9, sort = "title", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        FilterCriteria filters = new FilterCriteria(isAvailable, minYear, maxYear, categories, languages);
+        BookFilterCriteria filters = new BookFilterCriteria(isAvailable, minYear, maxYear, categories, languages);
 
         Page<BookResponse> result = bookService.getSearchedBooks(query, pageable, filters);
 

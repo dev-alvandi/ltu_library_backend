@@ -5,8 +5,8 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class BooksPublishedYearRange {
+public class LanguageCount {
 
-    private Integer minYear;
-    private Integer maxYear;
+    private String language;
+    private long count;
 }

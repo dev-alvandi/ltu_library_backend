@@ -26,4 +26,5 @@ public class GlobalConstants {
 
     public static final int CLOUD_URL_EXPIRATION_TIME_IN_MINUTES = 5;
 
+    public static final long HOURS_UNTIL_RESERVATION_EXPIRES = 48;
 }
