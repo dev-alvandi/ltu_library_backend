@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.repository;
+package com.noahalvandi.dbbserver.repository.book;
 
 import com.noahalvandi.dbbserver.dto.projection.book.BooksPublishedYearRange;
 import com.noahalvandi.dbbserver.dto.projection.LanguageCount;

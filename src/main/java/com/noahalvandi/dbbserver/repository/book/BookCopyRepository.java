@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.repository;
+package com.noahalvandi.dbbserver.repository.book;
 
 import com.noahalvandi.dbbserver.model.BookCopy;
 import org.springframework.data.domain.Page;

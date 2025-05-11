@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.service;
+package com.noahalvandi.dbbserver.service.book;
 
 import com.noahalvandi.dbbserver.dto.projection.LanguageCount;
 import com.noahalvandi.dbbserver.dto.projection.book.BookFilterCriteria;
@@ -13,9 +13,10 @@ import com.noahalvandi.dbbserver.dto.response.mapper.book.BookCopyResponseMapper
 import com.noahalvandi.dbbserver.dto.response.mapper.book.BookResponseMapper;
 import com.noahalvandi.dbbserver.exception.ResourceException;
 import com.noahalvandi.dbbserver.model.*;
-import com.noahalvandi.dbbserver.repository.BookCategoryRepository;
-import com.noahalvandi.dbbserver.repository.BookCopyRepository;
-import com.noahalvandi.dbbserver.repository.BookRepository;
+import com.noahalvandi.dbbserver.repository.book.BookCategoryRepository;
+import com.noahalvandi.dbbserver.repository.book.BookCopyRepository;
+import com.noahalvandi.dbbserver.repository.book.BookRepository;
+import com.noahalvandi.dbbserver.service.S3Service;
 import com.noahalvandi.dbbserver.util.GlobalConstants;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

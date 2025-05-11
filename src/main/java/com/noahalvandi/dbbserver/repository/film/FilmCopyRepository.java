@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.repository;
+package com.noahalvandi.dbbserver.repository.film;
 
 import com.noahalvandi.dbbserver.model.FilmCopy;
 import org.springframework.data.domain.Page;

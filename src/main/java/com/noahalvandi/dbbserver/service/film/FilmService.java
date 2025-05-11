@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.service;
+package com.noahalvandi.dbbserver.service.film;
 
 import com.noahalvandi.dbbserver.dto.projection.film.FilmFilterCriteria;
 import com.noahalvandi.dbbserver.dto.projection.film.FilmsReleasedDateRange;

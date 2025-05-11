@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.service;
+package com.noahalvandi.dbbserver.service.book;
 
 import com.noahalvandi.dbbserver.dto.projection.book.BooksPublishedYearRange;
 import com.noahalvandi.dbbserver.dto.projection.book.BookFilterCriteria;

@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.repository;
+package com.noahalvandi.dbbserver.repository.film;
 
 import com.noahalvandi.dbbserver.dto.projection.LanguageCount;
 import com.noahalvandi.dbbserver.dto.projection.film.FilmsReleasedDateRange;

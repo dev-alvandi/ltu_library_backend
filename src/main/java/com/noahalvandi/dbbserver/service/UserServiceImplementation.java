@@ -2,6 +2,8 @@ package com.noahalvandi.dbbserver.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.noahalvandi.dbbserver.repository.book.BookCopyRepository;
+import com.noahalvandi.dbbserver.repository.film.FilmCopyRepository;
 import com.noahalvandi.dbbserver.security.JwtProvider;
 import com.noahalvandi.dbbserver.dto.response.LoanResponse;
 import com.noahalvandi.dbbserver.dto.response.LoanStatus;

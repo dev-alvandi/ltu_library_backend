@@ -7,7 +7,7 @@ import com.noahalvandi.dbbserver.model.Book;
 import com.noahalvandi.dbbserver.model.Film;
 import com.noahalvandi.dbbserver.model.Reservation;
 import com.noahalvandi.dbbserver.model.User;
-import com.noahalvandi.dbbserver.repository.BookRepository;
+import com.noahalvandi.dbbserver.repository.book.BookRepository;
 import com.noahalvandi.dbbserver.repository.LoanRepository;
 import com.noahalvandi.dbbserver.repository.ReservationRepository;
 import com.noahalvandi.dbbserver.util.EmailTemplates;

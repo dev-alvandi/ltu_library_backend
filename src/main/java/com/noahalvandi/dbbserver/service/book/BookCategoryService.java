@@ -1,6 +1,4 @@
-package com.noahalvandi.dbbserver.service;
-
-import com.noahalvandi.dbbserver.model.BookCategory;
+package com.noahalvandi.dbbserver.service.book;
 
 import java.util.List;
 import java.util.Map;
