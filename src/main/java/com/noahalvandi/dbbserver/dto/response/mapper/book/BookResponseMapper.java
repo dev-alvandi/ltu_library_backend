@@ -1,6 +1,6 @@
-package com.noahalvandi.dbbserver.dto.response.mapper;
+package com.noahalvandi.dbbserver.dto.response.mapper.book;
 
-import com.noahalvandi.dbbserver.dto.response.BookResponse;
+import com.noahalvandi.dbbserver.dto.response.book.BookResponse;
 import com.noahalvandi.dbbserver.model.Book;
 
 

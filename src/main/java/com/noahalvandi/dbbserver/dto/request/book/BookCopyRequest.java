@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.dto.request;
+package com.noahalvandi.dbbserver.dto.request.book;
 
 import lombok.Data;
 

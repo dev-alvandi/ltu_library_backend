@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -27,7 +28,7 @@ public interface FilmRepository extends JpaRepository<Film, UUID> {
     @Query("SELECT DISTINCT f.language FROM Film f")
     public List<String> getAllLanguages();
     
-    @Query("SELECT new com.noahalvandi.dbbserver.dto.projection.film.FilmsReleasedDateRange(MIN(f.releaseDate), MAX(f.releaseDate)) FROM Film f")
+    @Query("SELECT new com.noahalvandi.dbbserver.dto.projection.film.FilmsReleasedDateRange(MIN(f.releasedDate), MAX(f.releasedDate)) FROM Film f")
     public FilmsReleasedDateRange getFilmsReleasedDateRange();
 
     @Query("""
@@ -57,8 +58,8 @@ public interface FilmRepository extends JpaRepository<Film, UUID> {
                 )
             )
         )
-        AND (:minDate IS NULL OR f.releaseDate >= :minDate)
-        AND (:maxDate IS NULL OR f.releaseDate <= :maxDate)
+        AND (:minDate IS NULL OR f.releasedDate >= :minDate)
+        AND (:maxDate IS NULL OR f.releasedDate <= :maxDate)
         AND (:categories IS NULL OR f.filmCategory.genre IN :categories)
         AND (:languages IS NULL OR f.language IN :languages)
         AND (:ageRating IS NULL OR f.ageRating <= :ageRating)
@@ -103,8 +104,8 @@ public interface FilmRepository extends JpaRepository<Film, UUID> {
                 )
             )
         )
-        AND (:minDate IS NULL OR f.releaseDate >= :minDate)
-        AND (:maxDate IS NULL OR f.releaseDate <= :maxDate)
+        AND (:minDate IS NULL OR f.releasedDate >= :minDate)
+        AND (:maxDate IS NULL OR f.releasedDate <= :maxDate)
         AND (:categories IS NULL OR f.filmCategory.genre IN :categories)
         AND (:languages IS NULL OR f.language IN :languages)
         AND (:ageRating IS NULL OR f.ageRating <= :ageRating)
@@ -120,6 +121,10 @@ public interface FilmRepository extends JpaRepository<Film, UUID> {
             Pageable pageable
     );
 
+    @Query("SELECT f FROM Film f WHERE f.filmId = :filmId")
+    Film findFilmByFilmId(UUID filmId);
     
-
+    @Modifying
+    @Query("DELETE FROM Film b WHERE b.filmId = :filmId")
+    void deleteByFilmId(@Param("filmId") UUID filmId);
 }

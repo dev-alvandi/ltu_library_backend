@@ -1,6 +1,6 @@
-package com.noahalvandi.dbbserver.dto.response.mapper;
+package com.noahalvandi.dbbserver.dto.response.mapper.book;
 
-import com.noahalvandi.dbbserver.dto.response.BookCopyResponse;
+import com.noahalvandi.dbbserver.dto.response.book.BookCopyResponse;
 import com.noahalvandi.dbbserver.model.BookCopy;
 
 public class BookCopyResponseMapper {

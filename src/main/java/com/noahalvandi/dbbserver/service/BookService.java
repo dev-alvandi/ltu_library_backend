@@ -2,11 +2,11 @@ package com.noahalvandi.dbbserver.service;
 
 import com.noahalvandi.dbbserver.dto.projection.book.BooksPublishedYearRange;
 import com.noahalvandi.dbbserver.dto.projection.book.BookFilterCriteria;
-import com.noahalvandi.dbbserver.dto.request.BookCopyRequest;
-import com.noahalvandi.dbbserver.dto.request.BookRequest;
-import com.noahalvandi.dbbserver.dto.response.BookCopyResponse;
-import com.noahalvandi.dbbserver.dto.response.BookResponse;
-import com.noahalvandi.dbbserver.dto.response.BookSuggestionsResponse;
+import com.noahalvandi.dbbserver.dto.request.book.BookCopyRequest;
+import com.noahalvandi.dbbserver.dto.request.book.BookRequest;
+import com.noahalvandi.dbbserver.dto.response.book.BookCopyResponse;
+import com.noahalvandi.dbbserver.dto.response.book.BookResponse;
+import com.noahalvandi.dbbserver.dto.response.book.BookSuggestionsResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;

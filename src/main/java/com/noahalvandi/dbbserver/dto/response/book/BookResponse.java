@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.dto.response;
+package com.noahalvandi.dbbserver.dto.response.book;
 
 import com.noahalvandi.dbbserver.dto.HasImageUrl;
 import com.noahalvandi.dbbserver.model.Book;

@@ -1,6 +1,6 @@
 package com.noahalvandi.dbbserver.dto.request.mapper;
 
-import com.noahalvandi.dbbserver.dto.request.BookRequest;
+import com.noahalvandi.dbbserver.dto.request.book.BookRequest;
 import com.noahalvandi.dbbserver.model.Book;
 
 public class BookRequestMapper {

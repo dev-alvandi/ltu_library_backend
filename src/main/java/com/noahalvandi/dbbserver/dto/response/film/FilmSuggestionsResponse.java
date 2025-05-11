@@ -1,4 +1,4 @@
-package com.noahalvandi.dbbserver.dto.response;
+package com.noahalvandi.dbbserver.dto.response.film;
 
 import lombok.Data;
 
