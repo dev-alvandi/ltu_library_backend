@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.noahalvandi.dbbserver.dto.HasImageUrl;
+import com.noahalvandi.dbbserver.util.BarcodeUtil;
 import com.noahalvandi.dbbserver.util.GlobalConstants;
 import io.github.cdimascio.dotenv.Dotenv;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -53,7 +55,6 @@ public class S3ServiceImplementation implements S3Service {
         return amazonS3.generatePresignedUrl(request).toString();
     }
 
-
     @Override
     public void uploadBarcodeImage(String key, byte[] imageBytes) {
         ObjectMetadata metadata = new ObjectMetadata();
@@ -72,5 +73,24 @@ public class S3ServiceImplementation implements S3Service {
                 item.setImageUrl(presignedUrl);
             }
         });
+    }
+
+    @Override
+    public String uploadResourceImage(String resourceName, UUID resourceId, MultipartFile file) throws IOException {
+        String key = resourceName.toLowerCase() + "s/" + resourceId + "/" + file.getOriginalFilename();
+        uploadFile(key, file);
+        return key;
+    }
+
+    @Override
+    public void uploadResourceBarcodeImage(String resourceName, String imageUrl, UUID copyId, String barcode) throws Exception {
+        String imageId = imageUrl.split("/")[1];
+        String key = String.format(
+                "%ss/%s/barcodes/%s/%s.png",
+                resourceName.toLowerCase(), imageId, copyId, barcode
+        );
+
+        byte[] barcodeImage = BarcodeUtil.generateBarcodePng(barcode);
+        this.uploadBarcodeImage(key, barcodeImage);
     }
 }

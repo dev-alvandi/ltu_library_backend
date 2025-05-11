@@ -1,8 +1,8 @@
 package com.noahalvandi.dbbserver.service;
 
 import com.noahalvandi.dbbserver.dto.projection.LanguageCount;
-import com.noahalvandi.dbbserver.dto.projection.book.BooksPublishedYearRange;
 import com.noahalvandi.dbbserver.dto.projection.book.BookFilterCriteria;
+import com.noahalvandi.dbbserver.dto.projection.book.BooksPublishedYearRange;
 import com.noahalvandi.dbbserver.dto.request.BookCopyRequest;
 import com.noahalvandi.dbbserver.dto.request.BookRequest;
 import com.noahalvandi.dbbserver.dto.request.mapper.BookRequestMapper;
@@ -16,7 +16,6 @@ import com.noahalvandi.dbbserver.model.*;
 import com.noahalvandi.dbbserver.repository.BookCategoryRepository;
 import com.noahalvandi.dbbserver.repository.BookCopyRepository;
 import com.noahalvandi.dbbserver.repository.BookRepository;
-import com.noahalvandi.dbbserver.util.BarcodeUtil;
 import com.noahalvandi.dbbserver.util.GlobalConstants;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -156,7 +155,8 @@ public class BookServiceImplementation implements BookService {
         String imageUrl = null;
         if (image != null && !image.isEmpty()) {
             UUID tempId = UUID.randomUUID(); // temporary ID to construct S3 key
-            imageUrl = uploadBookImage(tempId, image);
+//            imageUrl = uploadBookImage(tempId, image);
+            imageUrl = s3Service.uploadResourceImage("book", tempId, image);
         }
 
         // 3. Save Book
@@ -185,7 +185,9 @@ public class BookServiceImplementation implements BookService {
 
         BookCopy savedBookCopy = bookCopyRepository.save(bookCopy);
 
-        uploadBookBarcodeImage(savedBook, savedBookCopy);
+//        uploadBookBarcodeImage(savedBook, savedBookCopy);
+
+        s3Service.uploadResourceBarcodeImage("book", savedBook.getImageUrl(), savedBookCopy.getBookCopyId(), savedBookCopy.getBarcode());
 
 
         // 5. Return mapped DTO
@@ -220,7 +222,8 @@ public class BookServiceImplementation implements BookService {
             }
 
             // Upload new image
-            String newImageUrl = uploadBookImage(book.getBookId(), image);
+//            String newImageUrl = uploadBookImage(book.getBookId(), image);
+            String newImageUrl = s3Service.uploadResourceImage("book", book.getBookId(), image);
             book.setImageUrl(newImageUrl);
         }
 
@@ -276,7 +279,16 @@ public class BookServiceImplementation implements BookService {
             BookCopyResponse response = BookCopyResponseMapper.toDto(bookCopy);
 
             if (bookCopy.getBarcode() != null) {
-                String barcodeUrl = generateBarcodePresignedUrl(book, bookCopy, 5); // 5 minutes expiry
+
+                String barcodeKey = String.format(
+                        "books/%s/barcodes/%s/%s.png",
+                        book.getImageUrl().split("/")[1],
+                        bookCopy.getBookCopyId(),
+                        bookCopy.getBarcode()
+                );
+
+                String barcodeUrl = s3Service.generatePresignedUrl(barcodeKey, 5);
+
                 response.setBarcodeUrl(barcodeUrl);
             }
 
@@ -307,12 +319,13 @@ public class BookServiceImplementation implements BookService {
 
         newCopy.setBarcode(barcodeText);
 
-        BookCopy savedCopy = bookCopyRepository.save(newCopy);
+        BookCopy savedBookCopy = bookCopyRepository.save(newCopy);
 
         // Upload barcode to S3
-        uploadBookBarcodeImage(book, savedCopy);
+//        uploadBookBarcodeImage(book, savedBookCopy);
+        s3Service.uploadResourceBarcodeImage("book", book.getImageUrl(), savedBookCopy.getBookCopyId(), savedBookCopy.getBarcode());
 
-        return BookCopyResponseMapper.toDto(savedCopy);
+        return BookCopyResponseMapper.toDto(savedBookCopy);
     }
 
     @Transactional
@@ -401,34 +414,33 @@ public class BookServiceImplementation implements BookService {
     }
 
 
-    private String uploadBookImage(UUID bookId, MultipartFile file) throws IOException {
+//    private String uploadBookImage(UUID bookId, MultipartFile file) throws IOException {
+//
+//        String key = "books/" + bookId + "/" + file.getOriginalFilename();
+//        s3Service.uploadFile(key, file);
+//        return key;
+//    }
 
-        String key = "books/" + bookId + "/" + file.getOriginalFilename();
-        s3Service.uploadFile(key, file);
-        return key;
-    }
+//    private void uploadBookBarcodeImage(Book book, BookCopy bookCopy) throws Exception {
+//        String key = String.format(
+//                "books/%s/barcodes/%s/%s.png",
+//                book.getImageUrl().split("/")[1],
+//                bookCopy.getBookCopyId(),
+//                bookCopy.getBarcode()
+//        );
+//
+//        byte[] barcodeImage = BarcodeUtil.generateBarcodePng(bookCopy.getBarcode());
+//        s3Service.uploadBarcodeImage(key, barcodeImage);
+//    }
 
-    private void uploadBookBarcodeImage(Book book, BookCopy bookCopy) throws Exception {
-//        String sanitizedTitle = book.getTitle().replaceAll("[^a-zA-Z0-9\\-_]", "_"); // safe for S3 key
-        String key = String.format(
-                "books/%s/barcodes/%s/%s.png",
-                book.getImageUrl().split("/")[1],
-                bookCopy.getBookCopyId(),
-                bookCopy.getBarcode()
-        );
-
-        byte[] barcodeImage = BarcodeUtil.generateBarcodePng(bookCopy.getBarcode());
-        s3Service.uploadBarcodeImage(key, barcodeImage);
-    }
-
-    public String generateBarcodePresignedUrl(Book book, BookCopy bookCopy, int expirationInMinutes) {
-        String barcodeKey = String.format(
-                "books/%s/barcodes/%s/%s.png",
-                book.getImageUrl().split("/")[1],
-                bookCopy.getBookCopyId(),
-                bookCopy.getBarcode()
-        );
-        return s3Service.generatePresignedUrl(barcodeKey, expirationInMinutes);
-    }
+//    public String generateBarcodePresignedUrl(Book book, BookCopy bookCopy, int expirationInMinutes) {
+//        String barcodeKey = String.format(
+//                "books/%s/barcodes/%s/%s.png",
+//                book.getImageUrl().split("/")[1],
+//                bookCopy.getBookCopyId(),
+//                bookCopy.getBarcode()
+//        );
+//        return s3Service.generatePresignedUrl(barcodeKey, expirationInMinutes);
+//    }
 
 }
