@@ -275,7 +275,7 @@ public class FilmServiceImplementation implements FilmService {
                         filmCopy.getBarcode()
                 );
 
-                String barcodeUrl = s3Service.generatePresignedUrl(barcodeKey, 5);
+                String barcodeUrl = s3Service.generatePresignedUrl(barcodeKey, GlobalConstants.CLOUD_URL_EXPIRATION_TIME_IN_MINUTES);
                 response.setBarcodeUrl(barcodeUrl);
             }
             return response;
