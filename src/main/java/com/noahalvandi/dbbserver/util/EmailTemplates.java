@@ -46,7 +46,7 @@ public class EmailTemplates {
                   </div>
                 </body>
             </html>
-        """.formatted(resetLink, GlobalConstants.MINUTES_TO_EXPIRE_PASSWORD_TOKEN);
+        """.formatted(resetLink, GlobalConstants.MINUTES_TO_EXPIRE_RESET_PASSWORD_TOKEN);
     }
 
     public static String getAccountDeletionHtmlTemplate(String firstName) {

@@ -35,7 +35,7 @@ public class PasswordResetServiceImplementation implements PasswordResetService 
         Optional<User> userOpt = Optional.ofNullable(userRepository.findByEmail(email));
         if (userOpt.isPresent()) {
             String token = UUID.randomUUID().toString();
-            LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(GlobalConstants.MINUTES_TO_EXPIRE_PASSWORD_TOKEN);
+            LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(GlobalConstants.MINUTES_TO_EXPIRE_RESET_PASSWORD_TOKEN);
             resetTokens.put(token, new PasswordResetToken(userOpt.get().getUserId(), expiresAt));
 
             String resetLink = GlobalConstants.FRONTEND_BASE_URL + "/auth/password-reset/" + token;
