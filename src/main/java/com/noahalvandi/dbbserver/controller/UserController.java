@@ -89,10 +89,6 @@ public class UserController {
 
         User user = userService.findUserProfileByJwt(jwt);
 
-        // 1. Check if user is authorized (Admin or Librarian)
-        if (!userService.isAdminOrLibrarian(user)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
 
         // 2. Validate old password
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
