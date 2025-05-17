@@ -1,0 +1,59 @@
+services:
+  # MySQL database container
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_db
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: dbb_db
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - backend
+
+  # RabbitMQ container with custom ports
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5673:5672"     # Custom AMQP port on host
+      - "15673:15672"   # Custom web UI port on host
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - backend
+
+  # Spring Boot app container
+  springboot-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ltu_library_backend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mysql
+      - rabbitmq
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dbb_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+    networks:
+      - backend
+
+# Can define named volumes
+volumes:
+  mysql_data:
+
+# Can define user-defined bridge network
+networks:
+  backend:
