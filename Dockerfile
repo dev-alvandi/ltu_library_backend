@@ -1,11 +1,8 @@
 FROM ubuntu:latest
-LABEL authors="noah"
+LABEL authors="Noah Alvandi"
 
 # Base image for Java 21 applications
 FROM openjdk:21-jdk-slim
-
-# Label for documentation (optional)
-LABEL authors="noah"
 
 # Set the working directory inside the container
 WORKDIR /app
